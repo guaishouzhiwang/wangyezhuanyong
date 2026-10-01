@@ -1,13 +1,13 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const scenes={'huixin-chibi':['晴窗慧欣 · Q版','Q版粉发慧欣坐在阳光洒落的红沙发右侧','75% center'],'huixin-anime':['晴窗慧欣 · 正常版','正常比例粉发慧欣在明亮窗边微笑','75% center'],crimson:['绯色夜语','红色绣花服饰的银发角色，身后是灯火与夜景','60% 40%'],night:['灯下微光','银发角色坐在暖色灯光下','center 32%'],silver:['银色午后','银发角色在明亮的大厅中端着茶杯','center 32%'],tea:['一盏闲时','戴眼镜的狐耳角色坐在扶手椅上喝茶','center 32%'],crown:['王座星辉','戴着王冠的角色坐在王座上','center 36%'],window:['晴窗相伴','粉色长发的慧欣坐在阳光洒落的窗边','center 35%']};
+const scenes={'huixin-chibi':['晴窗慧欣 · Q版','Q版粉发慧欣坐在阳光洒落的红沙发右侧','75% center'],'huixin-anime':['晴窗慧欣 · 正常版','正常比例粉发慧欣在明亮窗边微笑','75% center'],crimson:['绯色夜语','红色绣花服饰的银发角色，身后是灯火与夜景','60% 40%'],silver:['银色午后','银发角色在明亮的大厅中端着茶杯','75% center'],tea:['一盏闲时','戴眼镜的狐耳角色坐在扶手椅上喝茶','75% center'],crown:['王座星辉','戴着王冠的角色坐在王座上','75% center']};
 const read=(k,f)=>{try{return localStorage.getItem('huixin-home-'+k)??f;}catch{return f;}};
 const save=(k,v)=>{try{localStorage.setItem('huixin-home-'+k,String(v));}catch{}};
 let loading=0,noticeTimer;
 function notice(t){$('notice').textContent=t;$('notice').classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').classList.remove('show'),2500);}
 async function setScene(key){
  if(!scenes[key])return;
- const request=++loading,img=new Image();img.src=''+key+'.webp';
+ const request=++loading,img=new Image();img.src=''+key+(['silver','tea','crown'].includes(key)?'-wide':'')+'.webp';
  try{await img.decode();}catch{if(request===loading)notice('这幅背景暂时没有加载成功');return;}
  if(request!==loading)return;
  $('wallpaper').src=img.src;$('wallpaper').alt=scenes[key][1];$('wallpaper').style.objectPosition=scenes[key][2];
@@ -15,7 +15,7 @@ async function setScene(key){
  document.querySelectorAll('[data-scene]').forEach(b=>{b.classList.toggle('selected',b.dataset.scene===key);b.setAttribute('aria-pressed',String(b.dataset.scene===key));});save('scene',key);
 }
 document.querySelectorAll('[data-scene]').forEach(b=>b.addEventListener('click',()=>setScene(b.dataset.scene)));
-const remembered=read('scene','crimson');if(remembered!=='crimson')setScene(remembered);
+const remembered=read('scene','crimson');if(scenes[remembered]&&remembered!=='crimson')setScene(remembered);else save('scene','crimson');
 function panel(open){$('settings').hidden=!open;$('pet-settings').setAttribute('aria-expanded',String(open));if(open)$('close-settings').focus();}
 $('pet-settings').onclick=()=>panel($('settings').hidden);
 $('close-settings').onclick=()=>{panel(false);$('pet-settings').focus();};
