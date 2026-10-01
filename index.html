@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="我的插画小世界，收藏喜欢的风景，与慧欣一起，前往 Fansky 和 Pixiv。">
+<meta name="theme-color" content="#25151d"><title>心之所向 · 我的个人主页</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2325151d'/%3E%3Cpath d='M32 49 13 30C1 15 22 7 32 21 42 7 63 15 51 30Z' fill='%23efb3c7'/%3E%3C/svg%3E">
+<link rel="preload" href="crimson.webp" as="image"><link rel="stylesheet" href="style.css">
+<script src="huixin-pet.js" defer></script><script src="app.js" defer></script>
+</head>
+<body>
+<img class="wallpaper" id="wallpaper" src="crimson.webp" alt="红色绣花服饰的银发角色，身后是灯火与夜景">
+<div class="shade" aria-hidden="true"></div>
+<div class="page">
+<header><a class="brand" href="./" aria-label="个人主页"><span class="brand-mark">H.</span><span>心之所向<small>MY PERSONAL SPACE</small></span></a><div class="top-actions"><button id="clean" class="glass" aria-pressed="false">只看风景</button><button id="pet-settings" class="glass" aria-expanded="false" aria-controls="settings">慧欣的小窝</button></div></header>
+<main>
+<div class="intro"><div class="eyebrow"><span></span>WELCOME TO MY LITTLE WORLD</div><h1>心有所向，<br>皆是<span>喜欢。</span></h1><p>在故事与画面之间，<br class="mobile-break">留一处属于自己的小天地。</p><nav class="destinations" aria-label="我的站外主页"><a class="destination fansky" href="https://www.fansky.co/discover"><span class="platform-icon">F</span><span><strong>Fansky</strong><small>前往 Fansky 主页</small></span><span class="visit">进入</span></a><a class="destination pixiv" href="https://www.pixiv.net/users/68894501"><span class="platform-icon">P</span><span><strong>Pixiv</strong><small>我的插画空间</small></span><span class="visit">进入</span></a></nav></div>
+<aside class="art-note"><span class="line"></span><span id="art-label">绯色夜语</span><small id="art-number">01 / 06</small></aside>
+</main>
+<footer><div class="scene-select"><div class="scene-heading"><span>换一幅心情</span><small>CHOOSE YOUR SCENE</small></div><div id="scenes" class="scenes" aria-label="选择背景">
+<button class="scene selected" data-scene="crimson" aria-label="背景：绯色夜语" aria-pressed="true"><img src="crimson-thumb.webp" alt=""><span>绯夜</span></button>
+<button class="scene" data-scene="night" aria-label="背景：灯下微光" aria-pressed="false"><img src="night-thumb.webp" alt=""><span>微光</span></button>
+<button class="scene" data-scene="silver" aria-label="背景：银色午后" aria-pressed="false"><img src="silver-thumb.webp" alt=""><span>银昼</span></button>
+<button class="scene" data-scene="tea" aria-label="背景：一盏闲时" aria-pressed="false"><img src="tea-thumb.webp" alt=""><span>闲时</span></button>
+<button class="scene" data-scene="crown" aria-label="背景：王座星辉" aria-pressed="false"><img src="crown-thumb.webp" alt=""><span>星辉</span></button>
+<button class="scene" data-scene="window" aria-label="背景：晴窗相伴" aria-pressed="false"><img src="window-thumb.webp" alt=""><span>晴窗</span></button>
+</div></div><div class="signature">有热爱，有陪伴。<small>WITH HUIXIN, ALWAYS.</small></div></footer>
+</div>
+<section id="settings" class="settings" hidden aria-label="慧欣设置"><div class="panel-heading"><div><small>YOUR LITTLE COMPANION</small><h2>慧欣的小窝</h2></div><button id="close-settings" aria-label="关闭慧欣设置">×</button></div><p>点一下挥手，停一会儿歪头。<br>也可以把我拖到你喜欢的位置。</p><label class="check"><input id="pet-visible" type="checkbox" checked>显示慧欣</label><label class="check"><input id="pet-follow" type="checkbox" checked>目光跟随鼠标</label><label class="range" for="pet-size">大小 <input id="pet-size" type="range" min="85" max="210" value="140"><output id="size-value">140</output></label><label class="range" for="pet-speed">动作速度 <input id="pet-speed" type="range" min="6" max="16" value="10"><output id="speed-value">10</output></label><div class="panel-actions"><button id="greet">打个招呼</button><button id="home">回到原位</button></div></section>
+<button class="restore glass" id="restore" hidden>返回主页</button><div id="notice" class="notice" role="status" aria-live="polite"></div>
+<huixin-pet id="huixin" size="140" fps="10"></huixin-pet>
+</body></html>
