@@ -38,3 +38,18 @@ customElements.whenDefined('huixin-pet').then(()=>{
  $('home').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);home();pet.say('慧欣回来啦。');};
  pet.addEventListener('pet-error',()=>notice('慧欣暂时没能加载，刷新页面再试试。'));
 });
+
+// First successful GitHub Pages deployment, a fixed epoch shared by all visitors.
+const siteStartedAt=Date.parse('2026-10-01T18:20:34+08:00');
+const beijingFormatter=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function updateSiteClock(){
+ const now=new Date();
+ $('beijing-clock').textContent=beijingFormatter.format(now);
+ $('beijing-clock').dateTime=now.toISOString();
+ const elapsed=Math.max(0,Math.floor((now.getTime()-siteStartedAt)/1000));
+ const days=Math.floor(elapsed/86400),hours=Math.floor(elapsed%86400/3600),minutes=Math.floor(elapsed%3600/60),seconds=elapsed%60;
+ $('site-uptime').textContent=days+'天 '+String(hours).padStart(2,'0')+'时 '+String(minutes).padStart(2,'0')+'分 '+String(seconds).padStart(2,'0')+'秒';
+}
+updateSiteClock();
+setInterval(updateSiteClock,1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSiteClock();});
