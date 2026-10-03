@@ -53,3 +53,23 @@ function updateSiteClock(){
 updateSiteClock();
 setInterval(updateSiteClock,1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSiteClock();});
+
+const commissionDialog=$('commission-dialog');
+let copyAttempt=0;
+$('commission-open').onclick=()=>{copyAttempt++;$('copy-result').textContent='';$('copy-fallback').hidden=true;commissionDialog.showModal();};
+$('commission-close').onclick=()=>commissionDialog.close();
+commissionDialog.addEventListener('close',()=>{copyAttempt++;$('commission-open').focus();});
+commissionDialog.addEventListener('click',e=>{if(e.target===commissionDialog){const r=commissionDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)commissionDialog.close();}});
+commissionDialog.querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',async()=>{
+ const attempt=++copyAttempt,value=button.dataset.copy;
+ $('copy-result').textContent='正在复制…';$('copy-fallback').hidden=true;
+ let copied=false;
+ try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);copied=true;}}catch{}
+ if(attempt!==copyAttempt||!commissionDialog.open)return;
+ if(!copied){
+  const input=$('copy-value');input.value=value;$('copy-fallback').hidden=false;input.focus();input.select();input.setSelectionRange(0,value.length);
+  try{copied=document.execCommand('copy');}catch{}
+  if(copied){$('copy-fallback').hidden=true;button.focus();}
+ }
+ $('copy-result').textContent=copied?(value==='2272193119'?'QQ 号已复制':'DC 用户名已复制'):'自动复制未成功，请长按下方账号复制。';
+}));
