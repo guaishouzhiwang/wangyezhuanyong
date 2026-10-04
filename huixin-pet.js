@@ -21,7 +21,7 @@
           @media(prefers-reduced-motion:reduce){.bubble{transition:none}}
         </style>
         <div class="bubble" role="status" aria-live="polite"></div>
-        <button type="button" aria-label="慧欣：点击挥手，拖动移动；方向键移动，Escape 恢复位置"><canvas width="384" height="416" aria-hidden="true"></canvas></button>`;
+        <button type="button" aria-label="慧欣：点击打开菜单，拖动移动；方向键移动，Escape 恢复位置" aria-haspopup="dialog"><canvas width="384" height="416" aria-hidden="true"></canvas></button>`;
       this.button=this.shadowRoot.querySelector('button');
       this.canvas=this.shadowRoot.querySelector('canvas');
       this.ctx=this.canvas.getContext('2d');
@@ -54,7 +54,7 @@
       this.button.addEventListener('lostpointercapture',()=>{this.drag=null;},{signal});
       this.button.addEventListener('click',()=>{
         if(this.suppressClick){this.suppressClick=false;return;}
-        this.play('wave',1800);this.say('我在这里，陪着你。');
+        this.dispatchEvent(new CustomEvent('pet-activate',{bubbles:true,composed:true}));
       },{signal});
       this.button.addEventListener('keydown',e=>{
         const moves={ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16]};
