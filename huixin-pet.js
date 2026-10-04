@@ -15,13 +15,14 @@
           :host([hidden]){display:none!important}
           button{all:unset;display:block;width:100%;height:100%;cursor:grab;touch-action:none;border-radius:24px;-webkit-tap-highlight-color:transparent}
           button:active{cursor:grabbing}button:focus-visible{outline:2px solid #d77899;outline-offset:3px}
+          .hint{position:absolute;top:100%;left:0;width:100%;box-sizing:border-box;text-align:center;padding:6px 2px;border:1px solid #f0dce466;border-radius:12px;background:#261b2aeb;color:#f8d9e6;font:12px/1.4 system-ui,sans-serif;pointer-events:none;white-space:nowrap}
           canvas{display:block;width:100%;height:100%;pointer-events:none}
           .bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:min(190px,75vw);padding:10px 14px;background:#fffafc;border:1px solid #f0dce4;border-radius:16px 16px 16px 4px;box-shadow:0 5px 24px #58334512;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
           .bubble.show{opacity:1} .error{font-size:12px;color:#8a3946;text-align:center}
           @media(prefers-reduced-motion:reduce){.bubble{transition:none}}
         </style>
         <div class="bubble" role="status" aria-live="polite"></div>
-        <button type="button" aria-label="慧欣：点击打开菜单，拖动移动；方向键移动，Escape 恢复位置" aria-haspopup="dialog"><canvas width="384" height="416" aria-hidden="true"></canvas></button>`;
+        <button type="button" aria-label="慧欣：点击打开菜单，拖动移动；方向键移动，Escape 恢复位置" aria-haspopup="dialog"><canvas width="384" height="416" aria-hidden="true"></canvas><span class="hint">点我可以留言 ✎</span></button>`;
       this.button=this.shadowRoot.querySelector('button');
       this.canvas=this.shadowRoot.querySelector('canvas');
       this.ctx=this.canvas.getContext('2d');

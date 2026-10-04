@@ -2,6 +2,8 @@
 (()=>{
  const el=id=>document.getElementById(id),menu=el('pet-menu'),dialog=el('guestbook-dialog'),pet=el('huixin');
  let mounted=false,timer;
+ el('guest-jump-bottom').onclick=()=>dialog.scrollTo({top:dialog.scrollHeight,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+ el('guest-jump-top').onclick=()=>dialog.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
  const focusPet=()=>pet.shadowRoot?.querySelector('button')?.focus();
  for(const modal of [menu,dialog]){
   modal.querySelector('[data-close]').onclick=()=>modal.close();
