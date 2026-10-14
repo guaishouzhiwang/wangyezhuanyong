@@ -59,7 +59,7 @@
       },{signal});
       this.button.addEventListener('keydown',e=>{
         const moves={ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16]};
-        if(moves[e.key]){e.preventDefault();this.pos.x+=moves[e.key][0];this.pos.y+=moves[e.key][1];this.clamp();}
+        if(moves[e.key]){e.preventDefault();this.pos.x+=moves[e.key][0];this.pos.y+=moves[e.key][1];this.clamp();if(e.key==='ArrowLeft'||e.key==='ArrowRight')this.play(e.key==='ArrowLeft'?'left':'right',700);}
         if(e.key==='Escape'){this.resetPosition();this.until=0;}
       },{signal});
       document.addEventListener('visibilitychange',()=>{
@@ -109,7 +109,12 @@
         let row=0,col=0,rotation=0,dy=0,dx=0,sx=1,sy=1;
         const breath=Math.sin(t/1000*Math.PI/2.8)*smooth;
         sy=1+breath*.006;dy=-breath*.65;
-        if(mode==='left'||mode==='right'){row=states[mode][0];col=this.reduced.matches?0:Math.floor(elapsed*3)%8;}
+        if(mode==='left'||mode==='right'){
+          row=states[mode][0];col=0;
+          const step=Math.sin(elapsed*Math.PI*2/1.6)*smooth;
+          dy-=Math.abs(step)*1.8;rotation=step*.018;
+          this.stride=step;
+        }
         else if(mode==='wave'){row=3;col=1;rotation=Math.sin(elapsed*Math.PI/1.1)*.045*smooth;}
         else if(mode==='dance'){row=6;col=1;rotation=Math.sin(elapsed*Math.PI/1.4)*.085*smooth;dx=Math.sin(elapsed*Math.PI/1.4)*5*smooth;dy-=Math.pow(Math.sin(elapsed*Math.PI/1.4),2)*3*smooth;}
         else if(mode==='pat'){row=8;col=5;sy-=Math.pow(Math.sin(elapsed*Math.PI/1.6),2)*.025*smooth;rotation=Math.sin(elapsed*Math.PI/2)*.025*smooth;}
@@ -123,6 +128,13 @@
           const blink=this.reduced.matches?0:t%6200;col=blink>5920&&blink<6070?3:blink>5850&&blink<6130?2:0;
           if(this.mouse&&this.getAttribute('follow-mouse')!=='false'){
             const mx=this.mouse.x-(this.pos.x+this.size/2),my=this.mouse.y-(this.pos.y+this.h*.3);
+            if(Math.hypot(mx,my)>12){
+              const angle=(Math.atan2(mx,-my)*180/Math.PI+360)%360;
+              const difference=((angle-this.gaze*22.5+540)%360)-180;
+              if(Math.abs(difference)>14)this.gaze=Math.round(angle/22.5)%16;
+              row=9+Math.floor(this.gaze/8);col=this.gaze%8;
+              this.dataset.direction=String(this.gaze*22.5);
+            }
             rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;
             dx=Math.max(-1.3,Math.min(1.3,mx/220))*smooth;
             dy+=Math.max(-.8,Math.min(.8,my/400))*smooth;
@@ -130,13 +142,26 @@
         }
         const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,384,416);ctx.globalAlpha=1;
         ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(sx,sy);
-        ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);ctx.restore();
+        if(mode==='left'||mode==='right'){
+          // Keep the torso opaque and animate each lower-leg strip spatially.
+          // Every render has a new leg position without fading between poses.
+          ctx.drawImage(this.img,0,row*208,192,145,-192,-374,384,290);
+          for(let y=145;y<208;y+=3){
+            const height=Math.min(3,208-y),bend=(y-145)/63;
+            for(let side=0;side<2;side++){
+              const shift=this.stride*4.5*bend*(side===0?1:-1);
+              ctx.drawImage(this.img,side*96,row*208+y,96,height,side*192-192+shift*2,y*2-374,192,height*2+.35);
+            }
+          }
+        }else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);
+        ctx.restore();
         if(active&&smooth&&['pat','heart','feed','sleep','dance'].includes(mode)){
           const glyph=mode==='sleep'?'z':mode==='feed'?'🍪':mode==='dance'?'♪':'♥';
           ctx.save();ctx.font=mode==='feed'?'32px sans-serif':'25px sans-serif';ctx.fillStyle='#ed87ad';ctx.textAlign='center';
           for(let i=0;i<3;i++){const phase=(elapsed/2.8+i/3)%1;ctx.globalAlpha=Math.sin(phase*Math.PI)*smooth;ctx.fillText(glyph,70+i*115+Math.sin(phase*Math.PI*2)*8,145-phase*85);}
           ctx.restore();ctx.globalAlpha=1;
         }
+        if(!this.mouse||this.getAttribute('follow-mouse')==='false'||mode!=='idle')this.dataset.direction='';
         this.frame={row,col};this.dataset.state=mode;this.dataset.renderFps=String(this.fps);
       }
       this.start();
