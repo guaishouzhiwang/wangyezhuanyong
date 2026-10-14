@@ -60,7 +60,7 @@
       },{signal});
       this.button.addEventListener('keydown',e=>{
         const moves={ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16]};
-        if(moves[e.key]){e.preventDefault();this.pos.x+=moves[e.key][0];this.pos.y+=moves[e.key][1];this.clamp();if(e.key==='ArrowLeft'||e.key==='ArrowRight')this.play(e.key==='ArrowLeft'?'left':'right',700);}
+        if(moves[e.key]){e.preventDefault();this.pos.x+=moves[e.key][0];this.pos.y+=moves[e.key][1];this.clamp();if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const walk=e.key==='ArrowLeft'?'left':'right',now=performance.now();if(this.state!==walk||now>=this.until)this.play(walk,700);else this.until=now+700;}}
         if(e.key==='Escape'){this.resetPosition();this.until=0;}
       },{signal});
       document.addEventListener('visibilitychange',()=>{
