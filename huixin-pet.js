@@ -13,9 +13,10 @@
         <style>
           :host{position:fixed;left:0;top:0;display:block;z-index:2147483000;width:160px;height:174px;contain:layout style;pointer-events:auto;color:#44333c;font:13px/1.5 system-ui,sans-serif}
           :host([hidden]){display:none!important}
-          button{all:unset;display:block;width:100%;height:100%;cursor:grab;touch-action:none;border-radius:24px;-webkit-tap-highlight-color:transparent}
+          button{all:unset;position:relative;display:block;width:100%;height:100%;cursor:grab;touch-action:none;border-radius:24px;-webkit-tap-highlight-color:transparent}
           button:active{cursor:grabbing}button:focus-visible{outline:2px solid #d77899;outline-offset:3px}
           .hint{position:absolute;top:100%;left:0;width:100%;box-sizing:border-box;text-align:center;padding:6px 2px;border:1px solid #f0dce466;border-radius:12px;background:#261b2aeb;color:#f8d9e6;font:12px/1.4 system-ui,sans-serif;pointer-events:none;white-space:nowrap}
+          .motion-layer{position:absolute;inset:0;transform-origin:50% 90%}.motion-layer[hidden]{display:none}
           canvas{display:block;width:100%;height:100%;pointer-events:none}
           .bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:min(190px,75vw);padding:10px 14px;background:#fffafc;border:1px solid #f0dce4;border-radius:16px 16px 16px 4px;box-shadow:0 5px 24px #58334512;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
           .bubble.show{opacity:1} .error{font-size:12px;color:#8a3946;text-align:center}
@@ -48,7 +49,7 @@
       },{signal});
       this.button.addEventListener('pointerup',e=>{
         if(this.drag?.id!==e.pointerId)return;
-        this.suppressClick=this.drag.moved; this.drag=null;
+        this.suppressClick=this.drag.moved;if(this.drag.moved)this.play(this.dragDirection||'right',450); this.drag=null;
         this.button.releasePointerCapture(e.pointerId);
       },{signal});
       this.button.addEventListener('pointercancel',()=>{this.drag=null;this.suppressClick=true;},{signal});
@@ -78,7 +79,7 @@
     }
     load(){
       const img=new Image();this.img=img;this.ready=false;this.lastKey='';
-      img.onload=()=>{if(this.img!==img)return;if(img.width!==1536||img.height!==2288){this.say('素材尺寸不正确');return;}this.ready=true;this.dispatchEvent(new CustomEvent('pet-ready'));};
+      img.onload=()=>{if(this.img!==img)return;if(img.width!==1536||img.height!==2288){this.say('素材尺寸不正确');return;}this.motion=new window.HuixinMotion(img);this.motion.ready.catch(()=>{this.dataset.motionFallback='true';});this.ready=true;this.dispatchEvent(new CustomEvent('pet-ready'));};
       img.onerror=()=>{if(this.img===img){this.say('慧欣的图片没有加载成功');this.dispatchEvent(new CustomEvent('pet-error'));}};
       img.src=this.getAttribute('src')||defaultSprite;
     }
@@ -89,7 +90,7 @@
       if(!this.drag||this.drag.id!==e.pointerId)return;
       const d=this.drag, dx=e.clientX-d.x,dy=e.clientY-d.y;
       if(Math.hypot(dx,dy)>5)d.moved=true;
-      if(d.moved){this.dragDirection=e.movementX<0?'left':e.movementX>0?'right':this.dragDirection||'right';this.pos={x:d.px+dx,y:d.py+dy};this.clamp();}
+      if(d.moved){const travel=d.px+dx-this.pos.x;this.dragDirection=travel<0?'left':travel>0?'right':this.dragDirection||'right';this.pos={x:d.px+dx,y:d.py+dy};this.clamp();}
     }
     play(state='wave',duration=4200){
       if(!states[state]&&!['dance','pat','feed','sleep','heart'].includes(state))throw new Error('未知动作：'+state);
@@ -101,16 +102,18 @@
     tick(t){
       this.raf=null;
       if(this.ready&&!this.hidden&&(!this.lastRender||t-this.lastRender>=1000/this.fps-1)){
-        this.lastRender=t;
+        const delta=Math.min(64,t-(this.lastRender||t));this.lastRender=t;
         const active=t<this.until,mode=this.drag?.moved?(this.dragDirection||'right'):active?this.state:this.hover?'review':'idle';
         const elapsed=(t-(active?this.started:0))/1000*this.motionSpeed;
         const envelope=active?Math.min(1,(t-this.started)/350,(this.until-t)/500):1;
         const smooth=this.reduced.matches?0:Math.max(0,envelope);
-        let row=0,col=0,rotation=0,dy=0,dx=0,sx=1,sy=1;
+        let row=0,col=0,rotation=0,dy=0,dx=0,sx=1,sy=1,tween=null;
         const breath=Math.sin(t/1000*Math.PI/2.8)*smooth;
         sy=1+breath*.006;dy=-breath*.65;
         if(mode==='left'||mode==='right'){
-          row=states[mode][0];col=0;
+          row=states[mode][0];
+          const phase=this.reduced.matches?0:(elapsed/1.8*8)%8;
+          col=Math.floor(phase);tween=phase-col;
           const step=Math.sin(elapsed*Math.PI*2/1.6)*smooth;
           dy-=Math.abs(step)*1.8;rotation=step*.018;
           this.stride=step;
@@ -130,10 +133,12 @@
             const mx=this.mouse.x-(this.pos.x+this.size/2),my=this.mouse.y-(this.pos.y+this.h*.3);
             if(Math.hypot(mx,my)>12){
               const angle=(Math.atan2(mx,-my)*180/Math.PI+360)%360;
-              const difference=((angle-this.gaze*22.5+540)%360)-180;
-              if(Math.abs(difference)>14)this.gaze=Math.round(angle/22.5)%16;
-              row=9+Math.floor(this.gaze/8);col=this.gaze%8;
-              this.dataset.direction=String(this.gaze*22.5);
+              if(this.gazeAngle===undefined)this.gazeAngle=angle;
+              const difference=((angle-this.gazeAngle+540)%360)-180;
+              this.gazeAngle=(this.gazeAngle+difference*(this.reduced.matches?1:1-Math.exp(-delta/110))+360)%360;
+              const direction=this.gazeAngle/22.5,index=Math.floor(direction);
+              row=9+Math.floor(index/8);col=index%8;tween=direction-index;
+              this.dataset.direction=String(Math.round(this.gazeAngle*10)/10);
             }
             rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;
             dx=Math.max(-1.3,Math.min(1.3,mx/220))*smooth;
@@ -142,19 +147,10 @@
         }
         const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,384,416);ctx.globalAlpha=1;
         ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(sx,sy);
-        if(mode==='left'||mode==='right'){
-          // Keep the torso opaque and animate each lower-leg strip spatially.
-          // Every render has a new leg position without fading between poses.
-          ctx.drawImage(this.img,0,row*208,192,145,-192,-374,384,290);
-          for(let y=145;y<208;y+=3){
-            const height=Math.min(3,208-y),bend=(y-145)/63;
-            for(let side=0;side<2;side++){
-              const shift=this.stride*4.5*bend*(side===0?1:-1);
-              ctx.drawImage(this.img,side*96,row*208+y,96,height,side*192-192+shift*2,y*2-374,192,height*2+.35);
-            }
-          }
-        }else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);
+        if(tween!==null&&this.motion)this.motion.draw(ctx,row,col,tween);
+        else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);
         ctx.restore();
+
         if(active&&smooth&&['pat','heart','feed','sleep','dance'].includes(mode)){
           const glyph=mode==='sleep'?'z':mode==='feed'?'🍪':mode==='dance'?'♪':'♥';
           ctx.save();ctx.font=mode==='feed'?'32px sans-serif':'25px sans-serif';ctx.fillStyle='#ed87ad';ctx.textAlign='center';
@@ -162,7 +158,8 @@
           ctx.restore();ctx.globalAlpha=1;
         }
         if(!this.mouse||this.getAttribute('follow-mouse')==='false'||mode!=='idle')this.dataset.direction='';
-        this.frame={row,col};this.dataset.state=mode;this.dataset.renderFps=String(this.fps);
+        this.renderCount=(this.renderCount||0)+1;if(!this.measureStart)this.measureStart=t;if(t-this.measureStart>=1000){this.dataset.measuredFps=String(Math.round(this.renderCount*1000/(t-this.measureStart)));this.renderCount=0;this.measureStart=t;}
+        this.frame={row,col};this.dataset.pose=String(row)+':'+String(col);this.dataset.tween=tween===null?'':String(tween.toFixed(3));this.dataset.state=mode;this.dataset.renderFps=String(this.fps);
       }
       this.start();
     }
