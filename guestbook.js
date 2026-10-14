@@ -5,15 +5,21 @@
  el('guest-jump-bottom').onclick=()=>dialog.scrollTo({top:dialog.scrollHeight,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
  el('guest-jump-top').onclick=()=>dialog.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
  const focusPet=()=>pet.shadowRoot?.querySelector('button')?.focus();
- for(const modal of [menu,dialog]){
+ for(const modal of [dialog]){
   modal.querySelector('[data-close]').onclick=()=>modal.close();
   modal.addEventListener('click',e=>{if(e.target!==modal)return;const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)modal.close();});
   modal.addEventListener('close',()=>{if(!document.querySelector('dialog[open]'))focusPet();});
  }
- pet.addEventListener('pet-activate',()=>{if(!menu.open&&!dialog.open)menu.showModal();});
- el('pet-wave').onclick=()=>{menu.close();pet.play('wave',1800);pet.say('我在这里，陪着你。');};
- function contact(){menu.close();el('commission-open').click();}
- el('pet-contact').onclick=contact;el('guest-contact').onclick=contact;
+ function closeMenu(){menu.hidePopover();}
+ function positionMenu(){const r=pet.getBoundingClientRect(),w=menu.offsetWidth,h=menu.offsetHeight;menu.style.left=Math.max(12,Math.min(innerWidth-w-12,r.left+r.width/2-w/2))+'px';menu.style.top=Math.max(12,Math.min(innerHeight-h-12,r.top-h-14))+'px';}
+ menu.querySelector('[data-close]').onclick=closeMenu;
+ pet.addEventListener('pet-activate',()=>{if(dialog.open)return;if(menu.matches(':popover-open'))closeMenu();else{menu.showPopover();positionMenu();}});
+ window.addEventListener('resize',()=>{if(menu.matches(':popover-open'))positionMenu();});
+ const reactions={pat:['pat','摸摸头，好开心呀。'],feed:['feed','谢谢你的饼干，甜甜的！'],dance:['dance','一起慢慢摇摆吧 ♪'],heart:['heart','送你一颗小心心 ♡'],sleep:['sleep','休息一会儿，我会陪着你。']};
+ menu.querySelectorAll('[data-pet-action]').forEach(button=>button.onclick=()=>{const [action,message]=reactions[button.dataset.petAction];closeMenu();pet.play(action,action==='sleep'?7000:4800);pet.say(message,4200);});
+ el('pet-wave').onclick=()=>{closeMenu();pet.play('wave',4200);pet.say('我在这里，陪着你。');};
+ function contact(){closeMenu();el('commission-open').click();}
+ el('guest-contact').onclick=contact;
  const status=el('guest-status'),retry=el('guest-retry'),container=el('guest-comments');
  function unavailable(){status.hidden=false;status.textContent='留言区暂时未能连接，可重新加载，或点击下方链接前往 GitHub。';retry.hidden=false;}
  function mount(){
@@ -31,7 +37,7 @@
   if(e.data.giscus.resizeHeight||e.data.giscus.discussion){clearTimeout(timer);status.hidden=true;retry.hidden=true;}
  });
  retry.onclick=()=>{clearTimeout(timer);container.replaceChildren();mounted=false;mount();};
- function open(){menu.close();if(!dialog.open)dialog.showModal();mount();}
+ function open(){closeMenu();if(!dialog.open)dialog.showModal();mount();}
  el('guestbook-open').onclick=open;
  if(new URLSearchParams(location.search).has('giscus'))open();
 })();

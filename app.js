@@ -27,14 +27,14 @@ customElements.whenDefined('huixin-pet').then(()=>{
  const home=()=>{pet.pos={x:Math.max(0,innerWidth-pet.size-(innerWidth<700?14:46)),y:Math.max(90,innerHeight-pet.h-(innerWidth<700?240:164))};pet.clamp();};
  pet.resetPosition=home;
  const size=Number(read('size',innerWidth<700?'105':'140'));pet.setAttribute('size',String(size));$('pet-size').value=pet.size;$('size-value').value=pet.size;
- const fps=Number(read('fps','10'));pet.setAttribute('fps',String(fps));$('pet-speed').value=pet.fps;$('speed-value').value=pet.fps;
+ pet.setAttribute('fps','60');const motion=Number(read('motion','1'));pet.setAttribute('motion-speed',String(motion));$('pet-speed').value=pet.motionSpeed;$('speed-value').value=pet.motionSpeed+'×';
  pet.hidden=read('visible','true')!=='true';$('pet-visible').checked=!pet.hidden;
  pet.setAttribute('follow-mouse',read('follow','true'));$('pet-follow').checked=pet.getAttribute('follow-mouse')!=='false';
  home();
  $('pet-visible').onchange=e=>{pet.hidden=!e.target.checked;save('visible',e.target.checked);};
  $('pet-follow').onchange=e=>{pet.setAttribute('follow-mouse',String(e.target.checked));save('follow',e.target.checked);};
- for(const [id,attr,key,out] of [['pet-size','size','size','size-value'],['pet-speed','fps','fps','speed-value']])$(id).oninput=e=>{pet.setAttribute(attr,e.target.value);$(out).value=e.target.value;save(key,e.target.value);};
- $('greet').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);pet.play('wave',1800);pet.say('欢迎来到我的小世界。');};
+ for(const [id,attr,key,out] of [['pet-size','size','size','size-value'],['pet-speed','motion-speed','motion','speed-value']])$(id).oninput=e=>{pet.setAttribute(attr,e.target.value);$(out).value=e.target.value+(key==='motion'?'×':'');save(key,e.target.value);};
+ $('greet').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);pet.play('wave',4200);pet.say('欢迎来到我的小世界。');};
  $('home').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);home();pet.say('慧欣回来啦。');};
  pet.addEventListener('pet-error',()=>notice('慧欣暂时没能加载，刷新页面再试试。'));
 });

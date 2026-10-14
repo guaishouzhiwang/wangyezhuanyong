@@ -6,7 +6,7 @@
   const defaultSprite = new URL('huixin-spritesheet.webp', scriptURL).href;
   const states = {idle:[0,6], right:[1,8], left:[2,8], wave:[3,4], jump:[4,5], sad:[5,8], waiting:[6,6], thinking:[7,6], review:[8,6]};
   class HuixinPet extends HTMLElement {
-    static get observedAttributes() { return ['size','fps','follow-mouse','src']; }
+    static get observedAttributes() { return ['size','fps','follow-mouse','src','motion-speed']; }
     constructor() {
       super();
       this.attachShadow({mode:'open'}).innerHTML = `
@@ -22,7 +22,7 @@
           @media(prefers-reduced-motion:reduce){.bubble{transition:none}}
         </style>
         <div class="bubble" role="status" aria-live="polite"></div>
-        <button type="button" aria-label="慧欣：点击打开菜单，拖动移动；方向键移动，Escape 恢复位置" aria-haspopup="dialog"><canvas width="384" height="416" aria-hidden="true"></canvas><span class="hint">点我可以留言 ✎</span></button>`;
+        <button type="button" aria-label="慧欣：点击打开菜单，拖动移动；方向键移动，Escape 恢复位置" aria-haspopup="dialog"><canvas width="384" height="416" aria-hidden="true"></canvas><span class="hint">点我 · 留言与互动 ♡</span></button>`;
       this.button=this.shadowRoot.querySelector('button');
       this.canvas=this.shadowRoot.querySelector('canvas');
       this.ctx=this.canvas.getContext('2d');
@@ -72,7 +72,8 @@
     attributeChangedCallback(name,old,value){if(old===value)return;if(name==='src'&&this.isConnected)this.load();else{this.configure();if(this.isConnected)this.clamp();}}
     configure(){
       this.size=Math.max(80,Math.min(280,Number(this.getAttribute('size'))||160));
-      this.fps=Math.max(4,Math.min(24,Number(this.getAttribute('fps'))||12));
+      this.fps=Math.max(30,Math.min(60,Number(this.getAttribute('fps'))||60));
+      this.motionSpeed=Math.max(.6,Math.min(1.4,Number(this.getAttribute('motion-speed'))||1));
       this.h=this.size*208/192;this.style.width=this.size+'px';this.style.height=this.h+'px';
     }
     load(){
@@ -90,45 +91,53 @@
       if(Math.hypot(dx,dy)>5)d.moved=true;
       if(d.moved){this.dragDirection=e.movementX<0?'left':e.movementX>0?'right':this.dragDirection||'right';this.pos={x:d.px+dx,y:d.py+dy};this.clamp();}
     }
-    play(state='wave',duration=2000){
-      if(!states[state])throw new Error('未知动作：'+state);
-      this.state=state;this.started=performance.now();this.until=this.started+Math.max(100,Number(duration)||2000);
+    play(state='wave',duration=4200){
+      if(!states[state]&&!['dance','pat','feed','sleep','heart'].includes(state))throw new Error('未知动作：'+state);
+      this.state=state;this.started=performance.now();this.until=this.started+Math.max(100,Number(duration)||4200);
       this.dispatchEvent(new CustomEvent('pet-action',{detail:{state}}));
     }
     say(text,duration=2400){this.bubble.textContent=String(text);this.bubble.classList.add('show');clearTimeout(this.bubbleTimer);this.bubbleTimer=setTimeout(()=>this.bubble.classList.remove('show'),duration);}
     start(){if(!this.raf&&!document.hidden)this.raf=requestAnimationFrame(t=>this.tick(t));}
     tick(t){
       this.raf=null;
-      if(this.ready&&!this.hidden){
-        let row=0,col=0,mode='idle';
-        if(this.drag?.moved)mode=this.dragDirection||'right';
-        else if(t<this.until)mode=this.state;
-        else if(this.hover)mode='review';
-        else if(this.mouse&&this.getAttribute('follow-mouse')!=='false')mode='look';
-        if(mode==='look'){
-          const dx=this.mouse.x-(this.pos.x+this.size/2),dy=this.mouse.y-(this.pos.y+this.h*.30);
-          if(Math.hypot(dx,dy)>12){
-            const angle=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
-            const difference=((angle-this.gaze*22.5+540)%360)-180;
-            if(Math.abs(difference)>14)this.gaze=Math.round(angle/22.5)%16;
-            row=9+Math.floor(this.gaze/8);col=this.gaze%8;
+      if(this.ready&&!this.hidden&&(!this.lastRender||t-this.lastRender>=1000/this.fps-1)){
+        this.lastRender=t;
+        const active=t<this.until,mode=this.drag?.moved?(this.dragDirection||'right'):active?this.state:this.hover?'review':'idle';
+        const elapsed=(t-(active?this.started:0))/1000*this.motionSpeed;
+        const envelope=active?Math.min(1,(t-this.started)/350,(this.until-t)/500):1;
+        const smooth=this.reduced.matches?0:Math.max(0,envelope);
+        let row=0,col=0,rotation=0,dy=0,dx=0,sx=1,sy=1;
+        const breath=Math.sin(t/1000*Math.PI/2.8)*smooth;
+        sy=1+breath*.006;dy=-breath*.65;
+        if(mode==='left'||mode==='right'){row=states[mode][0];col=this.reduced.matches?0:Math.floor(elapsed*3)%8;}
+        else if(mode==='wave'){row=3;col=1;rotation=Math.sin(elapsed*Math.PI/1.1)*.045*smooth;}
+        else if(mode==='dance'){row=6;col=1;rotation=Math.sin(elapsed*Math.PI/1.4)*.085*smooth;dx=Math.sin(elapsed*Math.PI/1.4)*5*smooth;dy-=Math.pow(Math.sin(elapsed*Math.PI/1.4),2)*3*smooth;}
+        else if(mode==='pat'){row=8;col=5;sy-=Math.pow(Math.sin(elapsed*Math.PI/1.6),2)*.025*smooth;rotation=Math.sin(elapsed*Math.PI/2)*.025*smooth;}
+        else if(mode==='feed'){row=6;col=0;sy+=Math.sin(elapsed*Math.PI/1.5)*.012*smooth;rotation=Math.sin(elapsed*Math.PI/1.5)*.022*smooth;}
+        else if(mode==='sleep'){row=5;col=4;sy=1+breath*.01;rotation=.025*smooth;}
+        else if(mode==='heart'){row=8;col=5;rotation=Math.sin(elapsed*Math.PI/2.2)*.025*smooth;}
+        else if(mode==='review'){row=8;col=1;rotation=Math.sin(t/2400)*.025*smooth;}
+        else if(active&&states[mode]){row=states[mode][0];col=Math.floor(elapsed*2)%states[mode][1];}
+        else {
+          // A brief natural blink, separate from the slower continuous breathing.
+          const blink=this.reduced.matches?0:t%6200;col=blink>5920&&blink<6070?3:blink>5850&&blink<6130?2:0;
+          if(this.mouse&&this.getAttribute('follow-mouse')!=='false'){
+            const mx=this.mouse.x-(this.pos.x+this.size/2),my=this.mouse.y-(this.pos.y+this.h*.3);
+            rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;
+            dx=Math.max(-1.3,Math.min(1.3,mx/220))*smooth;
+            dy+=Math.max(-.8,Math.min(.8,my/400))*smooth;
           }
-        }else{
-          if(this.animationMode!==mode){this.animationMode=mode;this.animationStart=t;}
-          const st=states[mode];row=st[0];
-          const origin=mode===this.state&&t<this.until?this.started:this.animationStart;
-          col=this.reduced.matches?0:Math.floor((t-origin)*this.fps/1000)%st[1];
         }
-        const key=row+':'+col;
-        if(this.lastKey!==key){
-          // Replace a whole opaque pose atomically. Alpha crossfades make the
-          // overlapping sprite fade at every transition and cause visible flicker.
-          this.frame={row,col};this.lastKey=key;
-          this.ctx.globalAlpha=1;
-          this.ctx.clearRect(0,0,384,416);
-          this.ctx.drawImage(this.img,col*192,row*208,192,208,0,0,384,416);
+        const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,384,416);ctx.globalAlpha=1;
+        ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(sx,sy);
+        ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);ctx.restore();
+        if(active&&smooth&&['pat','heart','feed','sleep','dance'].includes(mode)){
+          const glyph=mode==='sleep'?'z':mode==='feed'?'🍪':mode==='dance'?'♪':'♥';
+          ctx.save();ctx.font=mode==='feed'?'32px sans-serif':'25px sans-serif';ctx.fillStyle='#ed87ad';ctx.textAlign='center';
+          for(let i=0;i<3;i++){const phase=(elapsed/2.8+i/3)%1;ctx.globalAlpha=Math.sin(phase*Math.PI)*smooth;ctx.fillText(glyph,70+i*115+Math.sin(phase*Math.PI*2)*8,145-phase*85);}
+          ctx.restore();ctx.globalAlpha=1;
         }
-        this.dataset.state=mode;this.dataset.direction=mode==='look'?String(this.gaze*22.5):'';
+        this.frame={row,col};this.dataset.state=mode;this.dataset.renderFps=String(this.fps);
       }
       this.start();
     }
