@@ -87,10 +87,11 @@
     clamp(){this.pos.x=Math.max(0,Math.min(innerWidth-this.size,this.pos.x));this.pos.y=Math.max(0,Math.min(innerHeight-this.h,this.pos.y));this.style.transform=`translate3d(${this.pos.x}px,${this.pos.y}px,0)`;}
     move(e){
       if(e.pointerType!=='touch')this.mouse={x:e.clientX,y:e.clientY};
-      if(!this.drag||this.drag.id!==e.pointerId)return;
+      if(!this.drag||this.drag.id!==e.pointerId){this.render(performance.now());return;}
       const d=this.drag, dx=e.clientX-d.x,dy=e.clientY-d.y;
       if(Math.hypot(dx,dy)>5)d.moved=true;
       if(d.moved){const travel=d.px+dx-this.pos.x;this.dragDirection=travel<0?'left':travel>0?'right':this.dragDirection||'right';this.pos={x:d.px+dx,y:d.py+dy};this.clamp();}
+      this.render(performance.now());
     }
     play(state='wave',duration=4200){
       if(!states[state]&&!['dance','pat','feed','sleep','heart'].includes(state))throw new Error('未知动作：'+state);
@@ -99,8 +100,8 @@
     }
     say(text,duration=2400){this.bubble.textContent=String(text);this.bubble.classList.add('show');clearTimeout(this.bubbleTimer);this.bubbleTimer=setTimeout(()=>this.bubble.classList.remove('show'),duration);}
     start(){if(!this.raf&&!document.hidden)this.raf=requestAnimationFrame(t=>this.tick(t));}
-    tick(t){
-      this.raf=null;
+    tick(t){this.raf=null;this.render(t);this.start();}
+    render(t){
       if(this.ready&&!this.hidden&&(!this.lastRender||t-this.lastRender>=1000/this.fps-1)){
         const delta=Math.min(64,t-(this.lastRender||t));this.lastRender=t;
         const active=t<this.until,mode=this.drag?.moved?(this.dragDirection||'right'):active?this.state:this.hover?'review':'idle';
@@ -161,7 +162,6 @@
         this.renderCount=(this.renderCount||0)+1;if(!this.measureStart)this.measureStart=t;if(t-this.measureStart>=1000){this.dataset.measuredFps=String(Math.round(this.renderCount*1000/(t-this.measureStart)));this.renderCount=0;this.measureStart=t;}
         this.frame={row,col};this.dataset.pose=String(row)+':'+String(col);this.dataset.tween=tween===null?'':String(tween.toFixed(3));this.dataset.state=mode;this.dataset.renderFps=String(this.fps);
       }
-      this.start();
     }
   }
   customElements.define('huixin-pet',HuixinPet);
