@@ -5,7 +5,7 @@
   constructor(image){
    this.image=image;this.atlases={};
    this.ready=Promise.all(['right','left','look'].map(async name=>{
-    const atlas=new Image();atlas.src=new URL('huixin-'+name+'-frames.webp',base).href;await atlas.decode();
+    const atlas=new Image();const url=new URL('huixin-'+name+'-frames.webp',base);url.search='v=20261014-clean';atlas.src=url.href;await atlas.decode();
     if(atlas.width!==2048||atlas.height!==(name==='look'?2224:1112))throw Error('Invalid motion frames');this.atlases[name]=atlas;
    })).then(()=>this);
   }
