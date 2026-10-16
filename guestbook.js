@@ -15,6 +15,7 @@
  menu.querySelector('[data-close]').onclick=closeMenu;
  pet.addEventListener('pet-activate',()=>{if(dialog.open)return;if(menu.matches(':popover-open'))closeMenu();else{menu.showPopover();positionMenu();}});
  window.addEventListener('resize',()=>{if(menu.matches(':popover-open'))positionMenu();});
+ window.addEventListener('huixin-language-change',()=>{if(menu.matches(':popover-open'))positionMenu();});
  const reactions={pat:['pat','摸摸头，好开心呀。'],feed:['feed','谢谢你的饼干，甜甜的！'],dance:['dance','一起慢慢摇摆吧 ♪'],heart:['heart','送你一颗小心心 ♡'],sleep:['sleep','休息一会儿，我会陪着你。']};
  menu.querySelectorAll('[data-pet-action]').forEach(button=>button.onclick=()=>{const [action,message]=reactions[button.dataset.petAction];closeMenu();pet.play(action,action==='sleep'?7000:4800);pet.say(message,4200);});
  el('pet-wave').onclick=()=>{closeMenu();pet.play('wave',4200);pet.say('我在这里，陪着你。');};
@@ -25,7 +26,7 @@
  function mount(){
   if(mounted)return;mounted=true;status.hidden=false;status.textContent='正在连接留言区…';retry.hidden=true;
   const script=document.createElement('script');script.src='https://giscus.app/client.js';script.async=true;script.crossOrigin='anonymous';
-  const config={repo:'guaishouzhiwang/wangyezhuanyong','repo-id':'R_kgDOU2UFtA',category:'Announcements','category-id':'DIC_kwDOU2UFtM4DHA2S',mapping:'specific',term:'慧欣主页 · 公开留言',strict:'1','reactions-enabled':'0','emit-metadata':'1','input-position':'bottom',theme:'transparent_dark',lang:'zh-CN'};
+  const config={repo:'guaishouzhiwang/wangyezhuanyong','repo-id':'R_kgDOU2UFtA',category:'Announcements','category-id':'DIC_kwDOU2UFtM4DHA2S',mapping:'specific',term:'慧欣主页 · 公开留言',strict:'1','reactions-enabled':'0','emit-metadata':'1','input-position':'bottom',theme:'transparent_dark',lang:window.HuixinI18n?.language??'zh-CN'};
   if(!config['category-id']){mounted=false;status.textContent='留言区正在准备中，尚未开放发送。';return;}
   Object.entries(config).forEach(([key,value])=>script.setAttribute('data-'+key,value));
   script.onerror=()=>{clearTimeout(timer);unavailable();};container.append(script);timer=setTimeout(unavailable,20000);
