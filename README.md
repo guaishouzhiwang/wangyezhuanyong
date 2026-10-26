@@ -1,10 +1,10 @@
 # 心之所向 · 慧欣个人主页
 
-六张可切换插画背景，Fansky / Pixiv 直达入口，以及可拖动、目光跟随、悬停歪头眨眼的慧欣。
+六张可切换插画背景，中 / 英 / 日 / 韩四语言，Fansky、Pixiv、MMD、Discord、X、Patreon 和约稿入口。慧欣支持连续动作、长按摸头、散步、鼠标或触摸点跟随、休息唤醒，以及保存在当前浏览器的心情与精力。
 
 这是纯静态站点。GitHub Pages 使用 main 分支的 / (root) 发布，无需安装依赖或构建。
 
-修改 index.html 调整文字和外链，style.css 调整外观，app.js 调整背景与交互，huixin-pet.js 控制精灵。图片与页面放在同一目录。
+修改 index.html 调整文字和外链，style.css 调整外观，app.js 调整背景与交互，huixin-pet.js 控制精灵。图片与页面放在同一目录。动作图集按需加载；网页绘制跟随屏幕刷新率，最高调度 120 FPS。
 
 背景与精灵偏好仅存储在浏览器本地。公开留言由 giscus 和 GitHub Discussions 提供，登录 GitHub 后可发送，留言及账号信息完全公开。
 
