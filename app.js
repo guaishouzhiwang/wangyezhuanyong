@@ -27,7 +27,7 @@ customElements.whenDefined('huixin-pet').then(()=>{
  const home=()=>{pet.pos={x:Math.max(0,innerWidth-pet.size-(innerWidth<700?14:46)),y:Math.max(90,innerHeight-pet.h-(innerWidth<700?240:164))};pet.clamp();};
  pet.resetPosition=()=>{pet.stopTravel();pet.until=0;pet.sleeping=false;home();try{localStorage.removeItem('huixin-home-position');}catch{}};
  const size=Number(read('size',innerWidth<700?'105':'140'));pet.setAttribute('size',String(size));$('pet-size').value=pet.size;$('size-value').value=pet.size;
- pet.setAttribute('fps','120');const motion=Number(read('motion','1'));pet.setAttribute('motion-speed',String(motion));$('pet-speed').value=pet.motionSpeed;$('speed-value').value=pet.motionSpeed+'×';
+ pet.setAttribute('fps','120');const motion=Number(read('motion-drawn2','1'));pet.setAttribute('motion-speed',String(motion));$('pet-speed').value=pet.motionSpeed;$('speed-value').value=pet.motionSpeed+'×';
  pet.hidden=read('visible','true')!=='true';$('pet-visible').checked=!pet.hidden;
  pet.setAttribute('follow-mouse',read('follow','true'));$('pet-follow').checked=pet.getAttribute('follow-mouse')!=='false';
  home();
@@ -36,7 +36,7 @@ customElements.whenDefined('huixin-pet').then(()=>{
  pet.setAttribute('auto-idle',read('auto','true'));$('pet-auto').checked=pet.getAttribute('auto-idle')!=='false';$('pet-auto').onchange=e=>{pet.setAttribute('auto-idle',String(e.target.checked));save('auto',e.target.checked);};
  $('pet-visible').onchange=e=>{pet.hidden=!e.target.checked;save('visible',e.target.checked);};
  $('pet-follow').onchange=e=>{pet.setAttribute('follow-mouse',String(e.target.checked));save('follow',e.target.checked);};
- for(const [id,attr,key,out] of [['pet-size','size','size','size-value'],['pet-speed','motion-speed','motion','speed-value']])$(id).oninput=e=>{pet.setAttribute(attr,e.target.value);$(out).value=e.target.value+(key==='motion'?'×':'');save(key,e.target.value);};
+ for(const [id,attr,key,out] of [['pet-size','size','size','size-value'],['pet-speed','motion-speed','motion-drawn2','speed-value']])$(id).oninput=e=>{pet.setAttribute(attr,e.target.value);$(out).value=e.target.value+(key==='motion-drawn2'?'×':'');save(key,e.target.value);};
  $('greet').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);pet.perform('wave');pet.say('欢迎来到我的小世界。');};
  $('home').onclick=()=>{pet.hidden=false;$('pet-visible').checked=true;save('visible',true);pet.resetPosition();pet.say('慧欣回来啦。');};
  pet.addEventListener('pet-error',()=>notice('慧欣暂时没能加载，刷新页面再试试。'));

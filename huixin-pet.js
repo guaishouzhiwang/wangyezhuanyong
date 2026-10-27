@@ -3,7 +3,7 @@
  'use strict';if(customElements.get('huixin-pet'))return;
  const base=document.currentScript?.src||document.baseURI;
  const rows={idle:[0,6],right:[1,8],left:[2,8],wave:[3,4],jump:[4,5],sad:[5,8],waiting:[6,6],thinking:[7,6],review:[8,6]};
- const durations={wave:4200,pat:3800,feed:4200,dance:5200,heart:4200,think:4800,cheer:2800,sleep:1600,wake:1600,praise:4200};
+ const durations={wave:1800,pat:1400,feed:2000,dance:2000,heart:1600,think:1600,cheer:1200,sleep:1100,wake:900,praise:1600};
  class HuixinPet extends HTMLElement{
   static get observedAttributes(){return ['size','fps','follow-mouse','src','motion-speed','auto-idle'];}
   constructor(){
@@ -77,7 +77,7 @@
    this.render(performance.now());
   }
   commitPosition(){this.dispatchEvent(new CustomEvent('pet-moved',{detail:{x:this.pos.x,y:this.pos.y}}));}
-  stopTravel(){const was=this.travel||this.glide||this.keys.size;this.travel=null;this.glide=null;this.keys.clear();this.moving=false;this.coastUntil=0;if(was){this.commitPosition();this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:false}}));}}
+  stopTravel(){if(this.actionLoading){this.actionLoading=null;this.actionToken++;}const was=this.travel||this.glide||this.keys.size;this.travel=null;this.glide=null;this.keys.clear();this.moving=false;this.coastUntil=0;if(was){this.commitPosition();this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:false}}));}}
   walkTo(x,y){this.human();this.stopTravel();this.until=0;this.sleeping=false;const b=this.bounds(),t=performance.now();this.travel={kind:'walk',x:Math.max(b.minX,Math.min(b.maxX,x)),y:Math.max(b.minY,Math.min(b.maxY,y)),until:t+12000};this.walkOrigin=t;this.lastMotionAt=t;this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:true}}));}
   wander(){
    const b=this.bounds();let min=b.minX,max=b.maxX,y=this.pos.y;const links=document.querySelector('.destinations')?.getBoundingClientRect();
@@ -96,24 +96,29 @@
    const dx=x-this.pos.x,dy=y-this.pos.y,d=Math.hypot(dx,dy);if(d<2){if(travel.kind==='walk')this.stopTravel();return;}
    const step=Math.min(d,dt*(travel.kind==='follow'?.14:.075));this.pos.x+=dx/d*step;this.pos.y+=dy/d*step;this.moveDirection=dx<0?'left':'right';this.moving=step>.05;this.clamp();
   }
-  play(state='wave',duration=durations[state]||4200,automatic=false){
-   if(!rows[state]&&!Object.hasOwn(durations,state))throw Error('未知动作：'+state);this.stopTravel();this.gazeAngle=0;this.state=state;this.started=performance.now();this.duration=Math.max(200,Number(duration)||4200);this.until=state==='sleep'?Infinity:this.started+this.duration/this.motionSpeed;this.sleeping=state==='sleep';this.automatic=automatic;const token=++this.actionToken;
+  play(state='wave',duration=durations[state]||1800,automatic=false){
+   if(!rows[state]&&!Object.hasOwn(durations,state))throw Error('未知动作：'+state);this.stopTravel();this.gazeAngle=0;this.state=state;this.started=performance.now();this.duration=Math.max(200,Number(duration)||1800);this.until=state==='sleep'?Infinity:this.started+this.duration/this.motionSpeed;this.sleeping=state==='sleep';this.automatic=automatic;const token=++this.actionToken;
    const asset=state==='wake'?'sleep':state==='praise'?'heart':state;
-   if(!this.reduced.matches&&this.motion?.supportsAction(asset)&&!this.motion.hasAction(asset))this.motion.ensureAction(asset).then(()=>{if(this.isConnected&&token===this.actionToken&&performance.now()<this.until){this.started=performance.now();this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}}).catch(()=>{});
+   if(!this.reduced.matches&&this.motion?.supportsAction(asset)&&!this.motion.hasAction(asset)){
+    this.actionLoading=token;this.until=0;this.sleeping=false;
+    this.motion.ensureAction(asset).then(()=>{
+     if(this.isConnected&&token===this.actionToken&&this.actionLoading===token){this.actionLoading=null;this.started=performance.now();this.sleeping=state==='sleep';this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}
+    }).catch(()=>{if(token===this.actionToken){this.actionLoading=null;this.dataset.actionError=asset;this.say('慧欣的图片没有加载成功');}});
+   }
    this.dispatchEvent(new CustomEvent('pet-action',{detail:{state}}));
   }
-  perform(action){this.human();if(action==='sleep'&&this.sleeping)action='wake';if(action==='walk')this.wander();else if(action==='follow')this.follow();else this.play(action,durations[action]||4200);this.dispatchEvent(new CustomEvent('pet-interaction',{detail:{action}}));}
+  perform(action){this.human();if(action==='sleep'&&this.sleeping)action='wake';if(action==='walk')this.wander();else if(action==='follow')this.follow();else this.play(action,durations[action]||1800);this.dispatchEvent(new CustomEvent('pet-interaction',{detail:{action}}));}
   alignBubble(){if(!this.bubble)return;const width=document.documentElement?.clientWidth||innerWidth;this.bubble.style.left=(Math.max(112,Math.min(width-112,this.pos.x+this.size/2))-this.pos.x)+'px';this.bubble.style.bottom=this.pos.y<90?'auto':'100%';this.bubble.style.top=this.pos.y<90?'calc(100% + 34px)':'auto';}
   say(text,duration=3200){this.alignBubble();this.bubble.textContent=String(text);this.bubble.classList.add('show');clearTimeout(this.bubbleTimer);this.bubbleTimer=setTimeout(()=>this.bubble.classList.remove('show'),duration);}
   start(){if(!this.raf&&!document.hidden&&!this.covered)this.raf=requestAnimationFrame(t=>this.tick(t));}
-  tick(t){this.raf=0;this.updateTravel(t);if(this.autoIdle&&!this.reduced.matches&&!this.menuOpen&&!this.drag&&!this.travel&&!this.keys.size&&!this.sleeping&&t>=this.autoAt&&t>=this.until){const actions=['think','wave','heart'];this.autoAt=t+45000;this.play(actions[this.autoIndex++%actions.length],4200,true);}this.render(t);this.start();}
+  tick(t){this.raf=0;this.updateTravel(t);if(this.autoIdle&&!this.reduced.matches&&!this.menuOpen&&!this.drag&&!this.travel&&!this.keys.size&&!this.sleeping&&t>=this.autoAt&&t>=this.until){const actions=['think','wave','heart'];this.autoAt=t+45000;const action=actions[this.autoIndex++%actions.length];this.play(action,durations[action],true);}this.render(t);this.start();}
   render(t){
    if(!this.ready||this.hidden||this.covered)return;const interval=1000/this.fps;if(this.nextRenderAt&&t+.5<this.nextRenderAt)return;this.nextRenderAt=t+interval-((t-(this.nextRenderAt||t))%interval);
    const dt=Math.min(120,Math.max(0,t-(this.lastRender??t)));this.lastRender=t;
    const physicalWalk=!!(this.drag?.moved||this.moving||this.keys.size||t<(this.coastUntil||0)),scriptWalk=!physicalWalk&&t<this.until&&['left','right'].includes(this.state),walking=physicalWalk||scriptWalk,active=!walking&&t<this.until,mode=walking?(scriptWalk?this.state:this.moveDirection||'right'):active?this.state:'idle';
    const elapsed=Math.max(0,(t-(walking?(scriptWalk?this.started:this.walkOrigin):active?this.started:0))/1000)*this.motionSpeed,progress=active?Math.min(1,elapsed/(this.duration/1000)):0;
    const smooth=this.reduced.matches?0:1;let row=0,col=0,tween=null,rotation=0,dx=0,dy=-Math.sin(t/1800)*.65*smooth,sy=1+Math.sin(t/1800)*.006*smooth;
-   if(walking){this.gazeAngle=mode==='left'?270:90;row=rows[mode][0];const phase=this.reduced.matches?0:(elapsed/1.55*8)%8;col=Math.floor(phase);tween=phase-col;dy-=Math.abs(Math.sin(elapsed*Math.PI*2/1.55))*1.2*smooth;rotation=Math.sin(elapsed*Math.PI*2/1.55)*.012*smooth;}
+   if(walking){this.gazeAngle=mode==='left'?270:90;row=rows[mode][0];const phase=this.reduced.matches?0:(elapsed/.85*8)%8;col=Math.floor(phase);tween=phase-col;dy-=Math.abs(Math.sin(elapsed*Math.PI*2/.85))*1.2*smooth;rotation=Math.sin(elapsed*Math.PI*2/.85)*.012*smooth;}
    else if(active){
     const fallback={wave:[3,Math.min(3,Math.floor(progress*4))],pat:[8,5],feed:[6,Math.min(5,Math.floor(progress*6))],dance:[6,1],heart:[8,5],praise:[8,5],think:[7,Math.min(5,Math.floor(progress*6))],cheer:[4,Math.min(4,Math.floor(progress*5))],sleep:[5,4],wake:[0,0]};[row,col]=fallback[mode]||[rows[mode]?.[0]||0,0];
     const envelope=Math.min(1,elapsed/.35,(1-progress)*5);rotation=Math.sin(elapsed*Math.PI/(mode==='dance'?1.2:2))*(mode==='dance'?.055:.018)*Math.max(0,envelope)*smooth;if(mode==='pat')sy-=Math.sin(elapsed*Math.PI/1.5)**2*.012*smooth;
@@ -125,12 +130,18 @@
      rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;dx=Math.max(-1.1,Math.min(1.1,mx/250))*smooth;
     }else if(this.hover)rotation=Math.sin(t/2800)*.025*smooth;
    }
+   if(active&&!this.reduced.matches&&this.motion?.hasAction(mode==='wake'?'sleep':mode==='praise'?'heart':mode)){rotation=0;dy=0;sy=1;}
    const ctx=this.ctx;ctx.setTransform(this.canvas.width/384,0,0,this.canvas.height/416,0,0);ctx.clearRect(0,0,384,416);ctx.save();ctx.globalAlpha=.16;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(192,394,47,7,0,0,Math.PI*2);ctx.fill();ctx.restore();ctx.globalAlpha=1;ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(1,sy);
-   let chained=false;if(active&&!this.reduced.matches&&this.motion){const asset=mode==='wake'?'sleep':mode==='praise'?'heart':mode;chained=this.motion.drawAction(ctx,asset,mode==='wake'?1-progress:progress);}
+   let chained=false;
+   if(walking&&!this.reduced.matches&&this.motion){
+    if(!this.motion.hasAction('walk')&&!this.motion.pending.has('walk'))this.motion.ensureAction('walk').catch(()=>{});
+    chained=this.motion.drawAction(ctx,'walk',(elapsed/.85)%1,mode==='left');
+   }
+   if(active&&!this.reduced.matches&&this.motion){const asset=mode==='wake'?'sleep':mode==='praise'?'heart':mode;chained=this.motion.drawAction(ctx,asset,mode==='wake'?1-progress:progress);}
    if(!chained){if(tween!==null&&this.motion)this.motion.draw(ctx,row,col,tween);else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);}ctx.restore();
    if(active&&smooth&&['pat','heart','praise','feed','sleep','dance','think','cheer'].includes(mode)){
     ctx.save();ctx.textAlign='center';ctx.fillStyle='#ed87ad';
-    if(mode==='feed'){
+    if(mode==='feed'&&!chained){
      const bite=Math.max(0,Math.min(1,(progress-.18)/.5)),ease=bite*bite*(3-2*bite),x=286-94*ease,y=285-113*ease-32*Math.sin(bite*Math.PI);ctx.globalAlpha=progress>.76?Math.max(0,1-(progress-.76)/.15):1;ctx.font='32px sans-serif';ctx.fillText('🍪',x,y);
      if(bite>.75){ctx.fillStyle='#edbd88';for(let i=0;i<5;i++){ctx.globalAlpha=Math.max(0,1-(progress-.68)*3);ctx.fillRect(175+i*8,184+(progress-.68)*80+i%2*8,3,3);}}
     }else if(mode==='cheer'){
