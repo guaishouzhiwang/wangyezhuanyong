@@ -56,7 +56,7 @@
   }
   load(){
    const image=new Image();this.img=image;this.ready=false;this.motion?.dispose?.();this.motion=null;
-   image.onload=()=>{if(this.img!==image)return;if(image.width!==1536||image.height!==2288){this.say('素材尺寸不正确');return;}this.motion=new window.HuixinMotion(image);const motion=this.motion;delete this.dataset.motionFallback;motion.ready.then(()=>{if(innerWidth>=700&&this.motion===motion){const prime=()=>{if(this.motion===motion)motion.ensureAction('wave').catch(()=>{});};if(window.requestIdleCallback)window.requestIdleCallback(prime,{timeout:2500});else setTimeout(prime,1200);}},()=>{if(this.motion===motion)this.dataset.motionFallback='true';});this.ready=true;this.dispatchEvent(new CustomEvent('pet-ready'));};
+   image.onload=()=>{if(this.img!==image)return;if(image.width!==1536||image.height!==2288){this.say('素材尺寸不正确');return;}this.motion=new window.HuixinMotion(image);const motion=this.motion;delete this.dataset.motionFallback;motion.ready.catch(()=>{if(this.motion===motion)this.dataset.motionFallback='true';});this.ready=true;this.dispatchEvent(new CustomEvent('pet-ready'));};
    image.onerror=()=>{if(this.img===image){this.say('慧欣的图片没有加载成功');this.dispatchEvent(new CustomEvent('pet-error'));}};image.src=this.getAttribute('src')||new URL('huixin-spritesheet.webp',base).href;
   }
   bounds(){const width=document.documentElement?.clientWidth||innerWidth;return {minX:8,maxX:Math.max(8,width-this.size-8),minY:8,maxY:Math.max(8,innerHeight-this.h-42)};}
@@ -77,7 +77,7 @@
    this.render(performance.now());
   }
   commitPosition(){this.dispatchEvent(new CustomEvent('pet-moved',{detail:{x:this.pos.x,y:this.pos.y}}));}
-  stopTravel(){if(this.actionLoading){this.actionLoading=null;this.actionToken++;}const was=this.travel||this.glide||this.keys.size;this.travel=null;this.glide=null;this.keys.clear();this.moving=false;this.coastUntil=0;if(was){this.commitPosition();this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:false}}));}}
+  stopTravel(){if(this.actionLoading){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');this.actionToken++;}const was=this.travel||this.glide||this.keys.size;this.travel=null;this.glide=null;this.keys.clear();this.moving=false;this.coastUntil=0;if(was){this.commitPosition();this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:false}}));}}
   walkTo(x,y){this.human();this.stopTravel();this.until=0;this.sleeping=false;const b=this.bounds(),t=performance.now();this.travel={kind:'walk',x:Math.max(b.minX,Math.min(b.maxX,x)),y:Math.max(b.minY,Math.min(b.maxY,y)),until:t+12000};this.walkOrigin=t;this.lastMotionAt=t;this.dispatchEvent(new CustomEvent('pet-travel',{detail:{active:true}}));}
   wander(){
    const b=this.bounds();let min=b.minX,max=b.maxX,y=this.pos.y;const links=document.querySelector('.destinations')?.getBoundingClientRect();
@@ -99,11 +99,11 @@
   play(state='wave',duration=durations[state]||1800,automatic=false){
    if(!rows[state]&&!Object.hasOwn(durations,state))throw Error('未知动作：'+state);this.stopTravel();this.gazeAngle=0;this.state=state;this.started=performance.now();this.duration=Math.max(200,Number(duration)||1800);this.until=state==='sleep'?Infinity:this.started+this.duration/this.motionSpeed;this.sleeping=state==='sleep';this.automatic=automatic;const token=++this.actionToken;
    const asset=state==='wake'?'sleep':state==='praise'?'heart':state;
-   if(!this.reduced.matches&&this.motion?.supportsAction(asset)&&!this.motion.hasAction(asset)){
-    this.actionLoading=token;this.until=0;this.sleeping=false;
+   if(this.motion?.supportsAction(asset)&&!this.motion.hasAction(asset)){
+    this.actionLoading=token;this.dataset.actionLoading=asset;this.button.setAttribute?.('aria-busy','true');
     this.motion.ensureAction(asset).then(()=>{
-     if(this.isConnected&&token===this.actionToken&&this.actionLoading===token){this.actionLoading=null;this.started=performance.now();this.sleeping=state==='sleep';this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}
-    }).catch(()=>{if(token===this.actionToken){this.actionLoading=null;this.dataset.actionError=asset;this.say('慧欣的图片没有加载成功');}});
+     if(this.isConnected&&token===this.actionToken&&this.actionLoading===token){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');delete this.dataset.actionError;if(performance.now()>=this.until){this.started=performance.now();this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}}
+    }).catch(()=>{if(token===this.actionToken){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');this.dataset.actionError=asset;this.say('慧欣的图片没有加载成功');}});
    }
    this.dispatchEvent(new CustomEvent('pet-action',{detail:{state}}));
   }
@@ -115,12 +115,12 @@
   render(t){
    if(!this.ready||this.hidden||this.covered)return;const interval=1000/this.fps;if(this.nextRenderAt&&t+.5<this.nextRenderAt)return;this.nextRenderAt=t+interval-((t-(this.nextRenderAt||t))%interval);
    const dt=Math.min(120,Math.max(0,t-(this.lastRender??t)));this.lastRender=t;
-   const physicalWalk=!!(this.drag?.moved||this.moving||this.keys.size||t<(this.coastUntil||0)),scriptWalk=!physicalWalk&&t<this.until&&['left','right'].includes(this.state),walking=physicalWalk||scriptWalk,active=!walking&&t<this.until,mode=walking?(scriptWalk?this.state:this.moveDirection||'right'):active?this.state:'idle';
+   const physicalWalk=!!(this.drag?.moved||this.moving||this.keys.size||t<(this.coastUntil||0)),scriptWalk=!physicalWalk&&t<this.until&&['left','right'].includes(this.state),walking=physicalWalk||scriptWalk,active=!walking&&(t<this.until||!!this.actionLoading),mode=walking?(scriptWalk?this.state:this.moveDirection||'right'):active?this.state:'idle';
    const elapsed=Math.max(0,(t-(walking?(scriptWalk?this.started:this.walkOrigin):active?this.started:0))/1000)*this.motionSpeed,progress=active?Math.min(1,elapsed/(this.duration/1000)):0;
    const smooth=this.reduced.matches?0:1;let row=0,col=0,tween=null,rotation=0,dx=0,dy=-Math.sin(t/1800)*.65*smooth,sy=1+Math.sin(t/1800)*.006*smooth;
    if(walking){this.gazeAngle=mode==='left'?270:90;row=rows[mode][0];const phase=this.reduced.matches?0:(elapsed/.85*8)%8;col=Math.floor(phase);tween=phase-col;dy-=Math.abs(Math.sin(elapsed*Math.PI*2/.85))*1.2*smooth;rotation=Math.sin(elapsed*Math.PI*2/.85)*.012*smooth;}
    else if(active){
-    const fallback={wave:[3,Math.min(3,Math.floor(progress*4))],pat:[8,5],feed:[6,Math.min(5,Math.floor(progress*6))],dance:[6,1],heart:[8,5],praise:[8,5],think:[7,Math.min(5,Math.floor(progress*6))],cheer:[4,Math.min(4,Math.floor(progress*5))],sleep:[5,4],wake:[0,0]};[row,col]=fallback[mode]||[rows[mode]?.[0]||0,0];
+    const fallback={wave:[3,Math.min(3,Math.floor(progress*4))],pat:[8,Math.min(5,Math.floor(progress*6))],feed:[6,Math.min(5,Math.floor(progress*6))],dance:[6,[0,1,2,1,4,0][Math.min(5,Math.floor(progress*6))]],heart:[8,Math.min(5,Math.floor(progress*6))],praise:[8,Math.min(5,Math.floor(progress*6))],think:[7,Math.min(5,Math.floor(progress*6))],cheer:[4,Math.min(4,Math.floor(progress*5))],sleep:[5,Math.min(4,Math.floor(progress*5))],wake:[5,Math.max(0,4-Math.floor(progress*5))]};[row,col]=fallback[mode]||[rows[mode]?.[0]||0,0];
     const envelope=Math.min(1,elapsed/.35,(1-progress)*5);rotation=Math.sin(elapsed*Math.PI/(mode==='dance'?1.2:2))*(mode==='dance'?.055:.018)*Math.max(0,envelope)*smooth;if(mode==='pat')sy-=Math.sin(elapsed*Math.PI/1.5)**2*.012*smooth;
    }else{
     const blink=this.reduced.matches?0:t%6200;col=blink>5920&&blink<6070?3:blink>5850&&blink<6130?2:0;
@@ -130,14 +130,14 @@
      rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;dx=Math.max(-1.1,Math.min(1.1,mx/250))*smooth;
     }else if(this.hover)rotation=Math.sin(t/2800)*.025*smooth;
    }
-   if(active&&!this.reduced.matches&&this.motion?.hasAction(mode==='wake'?'sleep':mode==='praise'?'heart':mode)){rotation=0;dy=0;sy=1;}
+   if(active&&this.motion?.hasAction(mode==='wake'?'sleep':mode==='praise'?'heart':mode)){rotation=0;dy=0;sy=1;}
    const ctx=this.ctx;ctx.setTransform(this.canvas.width/384,0,0,this.canvas.height/416,0,0);ctx.clearRect(0,0,384,416);ctx.save();ctx.globalAlpha=.16;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(192,394,47,7,0,0,Math.PI*2);ctx.fill();ctx.restore();ctx.globalAlpha=1;ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(1,sy);
    let chained=false;
    if(walking&&!this.reduced.matches&&this.motion){
     if(!this.motion.hasAction('walk')&&!this.motion.pending.has('walk'))this.motion.ensureAction('walk').catch(()=>{});
     chained=this.motion.drawAction(ctx,'walk',(elapsed/.85)%1,mode==='left');
    }
-   if(active&&!this.reduced.matches&&this.motion){const asset=mode==='wake'?'sleep':mode==='praise'?'heart':mode;chained=this.motion.drawAction(ctx,asset,mode==='wake'?1-progress:progress);}
+   if(active&&this.motion){const asset=mode==='wake'?'sleep':mode==='praise'?'heart':mode;chained=this.motion.drawAction(ctx,asset,mode==='wake'?1-progress:progress);}
    if(!chained){if(tween!==null&&this.motion)this.motion.draw(ctx,row,col,tween);else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);}ctx.restore();
    if(active&&smooth&&['pat','heart','praise','feed','sleep','dance','think','cheer'].includes(mode)){
     ctx.save();ctx.textAlign='center';ctx.fillStyle='#ed87ad';
@@ -153,7 +153,7 @@
    }
    if(mode!=='idle'||!this.mouse||this.getAttribute('follow-mouse')==='false')this.dataset.direction='';
    this.frameTimes.push(t);while(this.frameTimes.length>2&&this.frameTimes[0]<t-1000)this.frameTimes.shift();if(this.frameTimes.length>3)this.dataset.measuredFps=String(Math.round((this.frameTimes.length-1)*1000/(t-this.frameTimes[0])));
-   this.dataset.state=mode;this.dataset.pose=row+':'+col;this.dataset.tween=tween===null?'':tween.toFixed(3);this.dataset.actionFrame=chained?String(this.motion.lastActionFrame):'';this.dataset.renderFps=String(this.fps);this.dataset.sleeping=String(!!this.sleeping);
+   this.dataset.state=mode;this.dataset.pose=row+':'+col;this.dataset.tween=tween===null?'':tween.toFixed(3);this.dataset.actionFrame=chained?String(this.motion.lastActionFrame):'';this.dataset.actionRenderer=chained?this.motion.lastRenderer||'atlas':'fallback';this.dataset.renderFps=String(this.fps);this.dataset.sleeping=String(!!this.sleeping);
   }
  }
  customElements.define('huixin-pet',HuixinPet);
