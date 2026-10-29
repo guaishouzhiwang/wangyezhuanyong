@@ -5,11 +5,11 @@ const read=(k,f)=>{try{return localStorage.getItem('huixin-home-'+k)??f;}catch{r
 const save=(k,v)=>{try{localStorage.setItem('huixin-home-'+k,String(v));}catch{}};
 let loading=0,noticeTimer;
 function notice(t){$('notice').textContent=t;$('notice').classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').classList.remove('show'),2500);}
-async function setScene(key){
+async function setScene(key,isCurrent=()=>true){
  if(!scenes[key])return;
  const request=++loading,img=new Image();img.src=''+key+(['silver','tea','crown'].includes(key)?'-wide':'')+'.webp';
  try{await img.decode();}catch{if(request===loading)notice('这幅背景暂时没有加载成功');return;}
- if(request!==loading)return;
+ if(request!==loading||!isCurrent())return;
  $('wallpaper').src=img.src;$('wallpaper').alt=scenes[key][1];$('wallpaper').style.objectPosition=scenes[key][2];
  $('art-label').textContent=scenes[key][0];$('art-number').textContent=String([...document.querySelectorAll('[data-scene]')].findIndex(b=>b.dataset.scene===key)+1).padStart(2,'0')+' / '+String(Object.keys(scenes).length).padStart(2,'0');
  document.querySelectorAll('[data-scene]').forEach(b=>{b.classList.toggle('selected',b.dataset.scene===key);b.setAttribute('aria-pressed',String(b.dataset.scene===key));});save('scene',key);

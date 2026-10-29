@@ -1,0 +1,12 @@
+.top-actions{flex-wrap:wrap;justify-content:flex-end}
+.scene-auto-control{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #ffffff30;border-radius:25px;background:#2a1f2b9c;color:#f8e9ef;font:12px system-ui;cursor:pointer;min-height:42px;box-sizing:border-box;white-space:nowrap}
+.scene-auto-control input{width:15px;height:15px;margin:0;accent-color:#eab0c8;cursor:pointer}
+.scene-auto-control:focus-within{outline:2px solid #eab0c8;outline-offset:3px}
+#updates-open{position:fixed;right:0;top:43%;z-index:2147483002;width:34px;height:66px;display:grid;place-items:center;border:1px solid #d4a9c066;border-right:0;border-radius:16px 0 0 16px;background:#2a2032ed;color:#f3c5da;font:32px/1 system-ui;cursor:pointer;touch-action:manipulation;box-shadow:-3px 4px 18px #0003}
+#updates-open:hover{background:#463047}#updates-open:focus-visible{outline:2px solid #f1b9d1;outline-offset:2px}
+#updates-drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(400px,92vw);max-width:92vw;height:100dvh;max-height:100dvh;box-sizing:border-box;padding:28px 24px;border:0;border-left:1px solid #d4a9c055;border-radius:22px 0 0 22px;background:#251d2cf5;color:#f7e6ef;overflow:auto;box-shadow:-12px 0 60px #0005}
+#updates-drawer::backdrop{background:#100b1780}
+.updates-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.updates-heading h2{margin:6px 0;font-size:24px;letter-spacing:2px}.updates-heading small{font-size:10px;letter-spacing:2px;color:#c99eb7}
+#updates-close{background:#ffffff0c;color:#f4d0e1;border:1px solid #ffffff26;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer}
+.updates-intro{font-size:12px;line-height:1.8;color:#c4b0c2;margin:20px 0 25px}.update-entry{padding:0 0 25px 18px;margin-left:5px;border-left:1px solid #d4a9c040;position:relative}.update-entry::before{content:'';position:absolute;left:-4px;top:7px;width:7px;height:7px;border-radius:50%;background:#e7abc6}.update-entry time,.update-entry .update-period{font-size:11px;color:#dfaec6;font-variant-numeric:tabular-nums}.update-entry h3{font-size:15px;margin:10px 0;color:#f5d8e7}.update-entry ul{padding-left:18px;margin:0;color:#cdbacb;font-size:13px;line-height:1.9}.update-entry li+li{margin-top:8px}
+@media(max-width:700px){.top-actions{gap:8px}.scene-auto-control{min-height:44px;padding:10px 12px}#updates-open{width:30px;height:60px;top:45%}#updates-drawer{padding:24px 20px}.settings{top:220px}}
