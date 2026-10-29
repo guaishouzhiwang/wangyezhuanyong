@@ -13,9 +13,11 @@
  toggle.addEventListener('change',()=>{enabled=toggle.checked;try{localStorage.setItem('huixin-home-scene-auto',String(enabled));}catch{}sync();});
  document.getElementById('scenes').addEventListener('click',event=>{if(event.target.closest('[data-scene]'))schedule();});
  document.addEventListener('visibilitychange',schedule);
- open.addEventListener('click',()=>{drawer.showModal();open.setAttribute('aria-expanded','true');schedule();close.focus();});
- drawer.addEventListener('close',()=>{open.setAttribute('aria-expanded','false');open.focus();schedule();});
- close.addEventListener('click',()=>drawer.close());
- drawer.addEventListener('click',event=>{if(event.target!==drawer)return;const r=drawer.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)drawer.close();});
+ // The summary opens the sidebar natively, even before this script loads.
+ drawer.addEventListener('toggle',()=>{schedule();if(drawer.open)close.focus();else open.focus();});
+ function closeDrawer(){drawer.open=false;}
+ close.addEventListener('click',closeDrawer);
+ document.getElementById('updates-backdrop').addEventListener('click',closeDrawer);
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&drawer.open){event.preventDefault();closeDrawer();}});
  sync();
 })();
