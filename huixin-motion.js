@@ -84,30 +84,96 @@ class HuixinFastActions{
 }
 
  const base=document.currentScript.src;const actionLayout={"wave":{"frames":217,"rows":14,"width":160,"height":174,"columns":16},"pat":{"frames":169,"rows":11,"width":160,"height":174,"columns":16},"feed":{"frames":241,"rows":16,"width":160,"height":174,"columns":16},"heart":{"frames":193,"rows":13,"width":160,"height":174,"columns":16},"think":{"frames":193,"rows":13,"width":160,"height":174,"columns":16},"cheer":{"frames":145,"rows":10,"width":160,"height":174,"columns":16},"dance":{"frames":241,"rows":16,"width":160,"height":174,"columns":16},"sleep":{"frames":133,"rows":9,"width":160,"height":174,"columns":16},"walk":{"frames":102,"rows":7,"width":160,"height":174,"columns":16}};
+ const newFrames={pat:112,feed:160,heart:128,dance:160,think:128,cheer:96,sleep:88,wake:72};
  class HuixinMotion{
   constructor(image){
    this.image=image;this.atlases={};this.actions=new Map();this.pending=new Map();this.cacheLimit=innerWidth<700?2:4;this.baseImages=[];
    this.fast=new HuixinFastActions(window.HuixinActionAssets);
    this.ready=this.fast.ready.catch(()=>this).then(()=>this);
-   this.legacyPending=new Map();
+   this.legacyPending=new Map();this.updated=new Map();this.unavailable=new Set();
+   const redrawn=new Image();
+   this.baseImages.push(redrawn);
+   redrawn.src=new URL('huixin-walk-wave-v5.webp',base).href;
+   redrawn.decode().then(()=>{
+    if(!this.disposed&&redrawn.naturalWidth===2560&&redrawn.naturalHeight===2610){
+     this.redrawnActions=redrawn;
+    }
+   },()=>{});
   }
-  supportsAction(name){return Object.hasOwn(actionLayout,name);}
-  hasAction(name){return !!(this.fast.available&&this.fast.gpu)||this.actions.has(name);}
+  supportsAction(name){return Object.hasOwn(actionLayout,name)||Object.hasOwn(newFrames,name);}
+  hasAction(name){if(Object.hasOwn(newFrames,name)&&!this.unavailable.has(name))return this.updated.has(name);return !!(this.fast.available&&this.fast.gpu)||this.actions.has(name);}
   ensureAction(name){
    if(!this.supportsAction(name)||this.disposed)return Promise.reject(Error('Unknown or disposed action'));
+   if(Object.hasOwn(newFrames,name)&&!this.unavailable.has(name)){
+    if(this.updated.has(name))return Promise.resolve(this.updated.get(name));
+    if(this.pending.has(name))return this.pending.get(name);
+    const promise=this.loadUpdatedAction(name);
+    this.pending.set(name,promise);
+    promise.then(()=>this.pending.delete(name),()=>this.pending.delete(name));
+    return promise;
+   }
+   if(name==='wake')return this.ensureAction('sleep');
    if(this.fast.available&&this.fast.gpu)return Promise.resolve(this.fast);
    if(this.actions.has(name))return Promise.resolve(this.actions.get(name));if(this.pending.has(name))return this.pending.get(name);
    const promise=(async()=>{await this.fast.ready.catch(()=>{});if(this.disposed)throw Error('Disposed action');if(this.fast.available&&this.fast.gpu)return this.fast;const image=new Image();image.fetchPriority='high';const url=new URL('huixin-action-'+name+'.webp',base);url.search='v=20261027-drawn';image.src=url.href;await image.decode();const layout=actionLayout[name];if(this.disposed){image.removeAttribute('src');throw Error('Disposed action');}if(image.width!==layout.width*layout.columns||image.height!==layout.height*layout.rows)throw Error('Invalid action frames');this.actions.set(name,image);while(this.actions.size>this.cacheLimit){const key=this.actions.keys().next().value;if(key===name)break;this.actions.get(key).removeAttribute('src');this.actions.delete(key);}return image;})();
    this.pending.set(name,promise);promise.then(()=>this.pending.delete(name),()=>this.pending.delete(name));return promise;
   }
+  async loadUpdatedAction(name){
+   const image=new Image();
+   image.src=new URL('huixin-motion-'+name+'-v6.webp',base).href;
+   try{
+    await image.decode();
+    if(this.disposed)throw Error('Disposed action');
+    if(image.naturalWidth!==2560||image.naturalHeight!==174*Math.ceil(newFrames[name]/16))throw Error('Invalid updated atlas');
+    this.updated.set(name,image);
+    while(this.updated.size>this.cacheLimit){
+     const key=this.updated.keys().next().value;
+     this.updated.get(key).removeAttribute('src');
+     this.updated.delete(key);
+    }
+    return image;
+   }catch(error){
+    image.removeAttribute('src');
+    if(this.disposed)throw error;
+    this.unavailable.add(name);
+    this.pending.delete(name);
+    return this.ensureAction(name);
+   }
+  }
   drawAction(ctx,name,progress,mirror=false){
+   const updated=this.updated.get(name);
+   if(updated){
+    const count=newFrames[name],phase=Math.max(0,Math.min(1,progress));
+    const index=Math.min(count-1,Math.floor(phase*count));
+    this.updated.delete(name);this.updated.set(name,updated);
+    ctx.save();
+    if(mirror)ctx.scale(-1,1);
+    ctx.drawImage(updated,(index%16)*160,Math.floor(index/16)*174,160,174,-192,-374,384,416);
+    ctx.restore();
+    this.lastActionFrame=index;
+    this.lastRenderer='redrawn';
+    return true;
+   }
+   if(this.redrawnActions&&(name==='walk'||name==='wave')){
+    const phase=Math.max(0,Math.min(1,progress));
+    const frameCount=name==='walk'?96:144;
+    const index=Math.min(frameCount-1,Math.floor(phase*frameCount));
+    ctx.save();
+    if(mirror)ctx.scale(-1,1);
+    const row=Math.floor(index/16)+(name==='walk'?0:6);
+    ctx.drawImage(this.redrawnActions,(index%16)*160,row*174,160,174,-192,-374,384,416);
+    ctx.restore();
+    this.lastActionFrame=index;
+    this.lastRenderer='redrawn';
+    return true;
+   }
    const image=this.actions.get(name),layout=actionLayout[name];if(!layout)return false;
    if(!image&&this.fast.draw(ctx,name,progress,mirror)){this.lastActionFrame=Math.floor(Math.max(0,Math.min(1,progress))*(layout.frames-1));this.lastRenderer=this.fast.gpu?'gpu':'keyframes';return true;}
    if(!image)return false;this.lastRenderer='atlas';
    this.actions.delete(name);this.actions.set(name,image);const index=Math.min(layout.frames-1,Math.floor(Math.max(0,Math.min(1,progress))*(layout.frames-1)));this.lastActionFrame=index;
    ctx.save();if(mirror)ctx.scale(-1,1);ctx.drawImage(image,index%layout.columns*layout.width,Math.floor(index/layout.columns)*layout.height,layout.width,layout.height,-192,-374,384,416);ctx.restore();return true;
   }
-  dispose(){this.disposed=true;this.fast.dispose();for(const image of this.baseImages)image.removeAttribute('src');for(const image of this.actions.values())image.removeAttribute('src');this.actions.clear();}
+  dispose(){this.disposed=true;this.fast.dispose();for(const image of this.baseImages)image.removeAttribute('src');for(const image of this.actions.values())image.removeAttribute('src');this.actions.clear();for(const image of this.updated.values())image.removeAttribute('src');this.updated.clear();}
   ensureLegacy(name){
    if(this.atlases[name]||this.legacyPending.has(name)||this.disposed)return;
    const image=new Image();image.fetchPriority='low';this.baseImages.push(image);const url=new URL('huixin-'+name+'-frames.webp',base);url.search='v=20261014-clean';image.src=url.href;

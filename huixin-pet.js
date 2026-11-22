@@ -3,6 +3,7 @@
  'use strict';if(customElements.get('huixin-pet'))return;
  const base=document.currentScript?.src||document.baseURI;
  const rows={idle:[0,6],right:[1,8],left:[2,8],wave:[3,4],jump:[4,5],sad:[5,8],waiting:[6,6],thinking:[7,6],review:[8,6]};
+ const walkCycleSeconds=.72;
  const durations={wave:1800,pat:1400,feed:2000,dance:2000,heart:1600,think:1600,cheer:1200,sleep:1100,wake:900,praise:1600};
  class HuixinPet extends HTMLElement{
   static get observedAttributes(){return ['size','fps','follow-mouse','src','motion-speed','auto-idle'];}
@@ -103,11 +104,11 @@
   }
   play(state='wave',duration=durations[state]||1800,automatic=false){
    if(!rows[state]&&!Object.hasOwn(durations,state))throw Error('未知动作：'+state);this.stopTravel();this.gazeAngle=0;this.state=state;this.started=performance.now();this.duration=Math.max(200,Number(duration)||1800);this.until=state==='sleep'?Infinity:this.started+this.duration/this.motionSpeed;this.sleeping=state==='sleep';this.automatic=automatic;const token=++this.actionToken;
-   const asset=state==='wake'?'sleep':state==='praise'?'heart':state;
+   const asset=state==='praise'?'heart':state;
    if(this.motion?.supportsAction(asset)&&!this.motion.hasAction(asset)){
     this.actionLoading=token;this.dataset.actionLoading=asset;this.button.setAttribute?.('aria-busy','true');
     this.motion.ensureAction(asset).then(()=>{
-     if(this.isConnected&&token===this.actionToken&&this.actionLoading===token){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');delete this.dataset.actionError;if(performance.now()>=this.until){this.started=performance.now();this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}}
+     if(this.isConnected&&token===this.actionToken&&this.actionLoading===token){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');delete this.dataset.actionError;this.started=performance.now();this.until=this.sleeping?Infinity:this.started+this.duration/this.motionSpeed;}
     }).catch(()=>{if(token===this.actionToken){this.actionLoading=null;delete this.dataset.actionLoading;this.button.removeAttribute?.('aria-busy');this.dataset.actionError=asset;this.say('慧欣的图片没有加载成功');}});
    }
    this.dispatchEvent(new CustomEvent('pet-action',{detail:{state}}));
@@ -121,9 +122,9 @@
    if(!this.ready||this.hidden||this.covered)return;const interval=1000/this.fps;if(this.nextRenderAt&&t+.5<this.nextRenderAt)return;this.nextRenderAt=t+interval-((t-(this.nextRenderAt||t))%interval);
    const dt=Math.min(120,Math.max(0,t-(this.lastRender??t)));this.lastRender=t;
    const physicalWalk=!!(this.drag?.moved||this.moving||this.keys.size||t<(this.coastUntil||0)),scriptWalk=!physicalWalk&&t<this.until&&['left','right'].includes(this.state),walking=physicalWalk||scriptWalk,active=!walking&&(t<this.until||!!this.actionLoading),mode=walking?(scriptWalk?this.state:this.moveDirection||'right'):active?this.state:'idle';
-   const elapsed=Math.max(0,(t-(walking?(scriptWalk?this.started:this.walkOrigin):active?this.started:0))/1000)*this.motionSpeed,progress=active?Math.min(1,elapsed/(this.duration/1000)):0;
+   const elapsed=Math.max(0,(t-(walking?(scriptWalk?this.started:this.walkOrigin):active?this.started:0))/1000)*this.motionSpeed,progress=active&&!this.actionLoading?Math.min(1,elapsed/(this.duration/1000)):0;
    const smooth=this.reduced.matches?0:1;let row=0,col=0,tween=null,rotation=0,dx=0,dy=-Math.sin(t/1800)*.65*smooth,sy=1+Math.sin(t/1800)*.006*smooth;
-   if(walking){this.gazeAngle=mode==='left'?270:90;row=rows[mode][0];const phase=this.reduced.matches?0:(elapsed/.85*8)%8;col=Math.floor(phase);tween=phase-col;dy-=Math.abs(Math.sin(elapsed*Math.PI*2/.85))*1.2*smooth;rotation=Math.sin(elapsed*Math.PI*2/.85)*.012*smooth;}
+   if(walking){this.gazeAngle=mode==='left'?270:90;row=rows[mode][0];const phase=this.reduced.matches?0:(elapsed/walkCycleSeconds*8)%8;col=Math.floor(phase);tween=phase-col;dy-=Math.abs(Math.sin(elapsed*Math.PI*2/walkCycleSeconds))*1.2*smooth;rotation=Math.sin(elapsed*Math.PI*2/walkCycleSeconds)*.012*smooth;}
    else if(active){
     const fallback={wave:[3,Math.min(3,Math.floor(progress*4))],pat:[8,Math.min(5,Math.floor(progress*6))],feed:[6,Math.min(5,Math.floor(progress*6))],dance:[6,[0,1,2,1,4,0][Math.min(5,Math.floor(progress*6))]],heart:[8,Math.min(5,Math.floor(progress*6))],praise:[8,Math.min(5,Math.floor(progress*6))],think:[7,Math.min(5,Math.floor(progress*6))],cheer:[4,Math.min(4,Math.floor(progress*5))],sleep:[5,Math.min(4,Math.floor(progress*5))],wake:[5,Math.max(0,4-Math.floor(progress*5))]};[row,col]=fallback[mode]||[rows[mode]?.[0]||0,0];
     const envelope=Math.min(1,elapsed/.35,(1-progress)*5);rotation=Math.sin(elapsed*Math.PI/(mode==='dance'?1.2:2))*(mode==='dance'?.055:.018)*Math.max(0,envelope)*smooth;if(mode==='pat')sy-=Math.sin(elapsed*Math.PI/1.5)**2*.012*smooth;
@@ -135,17 +136,17 @@
      rotation=Math.max(-.025,Math.min(.025,mx/8000))*smooth;dx=Math.max(-1.1,Math.min(1.1,mx/250))*smooth;
     }else if(this.hover)rotation=Math.sin(t/2800)*.025*smooth;
    }
-   if(active&&this.motion?.hasAction(mode==='wake'?'sleep':mode==='praise'?'heart':mode)){rotation=0;dy=0;sy=1;}
+   if(active&&this.motion?.hasAction(mode==='praise'?'heart':mode)){rotation=0;dy=0;sy=1;}
    const ctx=this.ctx;ctx.setTransform(this.canvas.width/384,0,0,this.canvas.height/416,0,0);ctx.clearRect(0,0,384,416);ctx.save();ctx.globalAlpha=.16;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(192,394,47,7,0,0,Math.PI*2);ctx.fill();ctx.restore();ctx.globalAlpha=1;ctx.save();ctx.translate(192+dx*2,374+dy*2);ctx.rotate(rotation);ctx.scale(1,sy);
    let chained=false;
    if(walking&&!this.reduced.matches&&this.motion){
     if(!this.motion.hasAction('walk')&&!this.motion.pending.has('walk'))this.motion.ensureAction('walk').catch(()=>{});
-    chained=this.motion.drawAction(ctx,'walk',(elapsed/.85)%1,mode==='left');
+    chained=this.motion.drawAction(ctx,'walk',(elapsed/walkCycleSeconds)%1,mode==='left');
    }
-   if(active&&this.motion){const asset=mode==='wake'?'sleep':mode==='praise'?'heart':mode;chained=this.motion.drawAction(ctx,asset,mode==='wake'?1-progress:progress);}
+   if(active&&this.motion){const asset=mode==='praise'?'heart':mode;if(!this.actionLoading)chained=this.motion.drawAction(ctx,asset,progress);if(!chained&&mode==='wake')chained=this.motion.drawAction(ctx,'sleep',this.actionLoading?1:1-progress);}
    if(!chained&&!this.baseReady&&this.motion?.fast.available){chained=this.motion.drawAction(ctx,'wave',0);}
    if(!chained&&this.baseReady){if(tween!==null&&this.motion)this.motion.draw(ctx,row,col,tween);else ctx.drawImage(this.img,col*192,row*208,192,208,-192,-374,384,416);}ctx.restore();
-   if(active&&smooth&&['pat','heart','praise','feed','sleep','dance','think','cheer'].includes(mode)){
+   if(active&&smooth&&!this.actionLoading&&(mode!=='feed'||!chained)&&['pat','heart','praise','feed','sleep','dance','think','cheer'].includes(mode)){
     ctx.save();ctx.textAlign='center';ctx.fillStyle='#ed87ad';
     if(mode==='feed'&&!chained){
      const bite=Math.max(0,Math.min(1,(progress-.18)/.5)),ease=bite*bite*(3-2*bite),x=286-94*ease,y=285-113*ease-32*Math.sin(bite*Math.PI);ctx.globalAlpha=progress>.76?Math.max(0,1-(progress-.76)/.15):1;ctx.font='32px sans-serif';ctx.fillText('🍪',x,y);

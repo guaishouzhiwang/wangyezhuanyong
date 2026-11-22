@@ -22,3 +22,11 @@
 @keyframes updates-slide-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes updates-fade-in{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){#updates-open,#updates-open span,#updates-close{transition:none}#updates-drawer[open]>#updates-content,#updates-drawer[open]>#updates-backdrop{animation:none}}
+
+.profile-share{margin-top:1rem}
+.profile-share button{min-height:44px;padding:.5rem .85rem;font-size:.875rem}
+.profile-share button:focus-visible,.profile-share textarea:focus-visible{outline:2px solid #efb3c7;outline-offset:3px}
+.profile-share p{margin:.4rem 0 0;font-size:.875rem}
+.profile-share p:empty{display:none}
+.profile-share textarea{display:block;box-sizing:border-box;width:min(100%,32rem);margin-top:.5rem;padding:.6rem;border:1px solid #efb3c7;border-radius:.5rem;background:#25151d;color:#fff;font:inherit;font-size:.875rem}
+.profile-share textarea[hidden]{display:none}

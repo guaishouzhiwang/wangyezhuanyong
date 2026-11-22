@@ -40,5 +40,33 @@
  close.addEventListener('click',closeDrawer);
  document.getElementById('updates-backdrop').addEventListener('click',closeDrawer);
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&drawer.open){event.preventDefault();closeDrawer();}});
+ const copyProfiles=document.getElementById('copy-profiles');
+ const copyStatus=document.getElementById('profile-copy-status');
+ const copyFallback=document.getElementById('profile-copy-fallback');
+ let copyMessage='';
+ function showCopyStatus(){
+  copyStatus.textContent=window.HuixinI18n?.t(copyMessage)??copyMessage;
+ }
+ window.addEventListener('huixin-language-change',showCopyStatus);
+ copyProfiles.addEventListener('click',async()=>{
+  const profiles=[...document.querySelectorAll('.destinations a[href]')];
+  const links=profiles.map(link=>link.querySelector('strong').textContent+' '+link.href).join('\n');
+  copyProfiles.disabled=true;
+  try{
+   await navigator.clipboard.writeText(links);
+   copyFallback.hidden=true;
+   copyMessage='已复制主页链接';
+  }catch{
+   copyFallback.value=links;
+   copyFallback.hidden=false;
+   copyFallback.focus();
+   copyFallback.select();
+   copyMessage='请手动复制下方链接';
+  }finally{
+   copyProfiles.disabled=false;
+   showCopyStatus();
+  }
+ });
+
  sync();
 })();
