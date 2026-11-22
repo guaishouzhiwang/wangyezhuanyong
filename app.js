@@ -2,7 +2,6 @@
 const $=id=>document.getElementById(id);
 const scenes={'huixin-chibi':['晴窗慧欣 · Q版','Q版粉发慧欣坐在阳光洒落的红沙发右侧','75% center'],'huixin-anime':['晴窗慧欣 · 正常版','正常比例粉发慧欣在明亮窗边微笑','75% center'],crimson:['绯色夜语','红色绣花服饰的银发角色，身后是灯火与夜景','60% 40%'],silver:['银色午后','银发角色在明亮的大厅中端着茶杯','75% center'],tea:['一盏闲时','戴眼镜的狐耳角色坐在扶手椅上喝茶','75% center'],crown:['王座星辉','戴着王冠的角色坐在王座上','75% center'],"tang-qining":["唐绮宁","唐绮宁在阳光下的咖啡馆端来咖啡","70% center"],"xu-qingtang":["许清棠","许清棠在温暖的奶茶店里捧着两杯奶茶","70% center"],"bai-yueling":["白月绫","白月绫在林荫校园里拿着书和饮料","70% center"],"robin":["知更鸟","知更鸟在暖色灯光下推开试衣间的门","70% center"]};
 const wideVariants=new Set(['silver','tea','crown']);
-const originalScenes=new Set(['crimson','silver','tea','crown','huixin-chibi','huixin-anime']);
 const read=(k,f)=>{try{return localStorage.getItem('huixin-home-'+k)??f;}catch{return f;}};
 const save=(k,v)=>{try{localStorage.setItem('huixin-home-'+k,String(v));}catch{}};
 let loading=0,noticeTimer;
@@ -16,7 +15,7 @@ async function setScene(key,isCurrent=()=>true){
  img.src=matchMedia($('wallpaper-portrait').media).matches?portrait:desktop;
  try{await img.decode();}catch{if(request===loading)notice('这幅背景暂时没有加载成功');return;}
  if(request!==loading||!isCurrent())return;
- $('wallpaper-portrait').srcset=portrait;$('wallpaper').toggleAttribute('data-original-scene',originalScenes.has(key));$('wallpaper').src=desktop;$('wallpaper').alt=scenes[key][1];$('wallpaper').style.setProperty('--scene-position',scenes[key][2]);
+ $('wallpaper-portrait').srcset=portrait;$('wallpaper').src=desktop;$('wallpaper').alt=scenes[key][1];$('wallpaper').style.setProperty('--scene-position',scenes[key][2]);
  $('art-label').textContent=scenes[key][0];$('art-number').textContent=String([...document.querySelectorAll('[data-scene]')].findIndex(b=>b.dataset.scene===key)+1).padStart(2,'0')+' / '+String(Object.keys(scenes).length).padStart(2,'0');
  document.querySelectorAll('[data-scene]').forEach(b=>{b.classList.toggle('selected',b.dataset.scene===key);b.setAttribute('aria-pressed',String(b.dataset.scene===key));});save('scene',key);
 }
