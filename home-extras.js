@@ -1,8 +1,11 @@
 (()=>{
  'use strict';
  const toggle=document.getElementById('scene-auto'),drawer=document.getElementById('updates-drawer'),open=document.getElementById('updates-open'),close=document.getElementById('updates-close');
- let enabled=true,timer,generation=0;
- try{enabled=localStorage.getItem('huixin-home-scene-auto')!=='false';}catch{}
+ const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+ const storageKey='huixin-home-scene-auto';
+ let savedPreference=null,timer,generation=0;
+ try{savedPreference=localStorage.getItem(storageKey);}catch{}
+ let enabled=savedPreference===null?!motionPreference.matches:savedPreference!=='false';
  function schedule(){clearTimeout(timer);const id=++generation;if(!enabled||document.hidden||drawer.open)return;timer=setTimeout(()=>advance(id),20000);}
  async function advance(id){
   if(id!==generation||!enabled||document.hidden||drawer.open)return;
@@ -10,13 +13,23 @@
   try{await window.setScene(buttons[(index+1)%buttons.length].dataset.scene,()=>id===generation&&enabled&&!document.hidden&&!drawer.open);}finally{if(id===generation)schedule();}
  }
  function sync(){toggle.checked=enabled;schedule();}
- toggle.addEventListener('change',()=>{enabled=toggle.checked;try{localStorage.setItem('huixin-home-scene-auto',String(enabled));}catch{}sync();});
+ toggle.addEventListener('change',()=>{
+  enabled=toggle.checked;
+  savedPreference=String(enabled);
+  try{localStorage.setItem(storageKey,savedPreference);}catch{}
+  sync();
+ });
+ motionPreference.addEventListener('change',()=>{
+  if(savedPreference!==null)return;
+  enabled=!motionPreference.matches;
+  sync();
+ });
  document.getElementById('scenes').addEventListener('click',event=>{if(event.target.closest('[data-scene]'))schedule();});
  document.addEventListener('visibilitychange',schedule);
  // Keep native opening; delay closing until the exit animation finishes.
  const content=document.getElementById('updates-content'),backdrop=document.getElementById('updates-backdrop');
  let closing=false,motionId=0,animations=[];
- const reducedMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const reducedMotion=()=>motionPreference.matches;
  function cancelAnimations(){animations.forEach(animation=>animation.cancel());animations=[];}
  function animateSidebar(show){
   const transform=getComputedStyle(content).transform,opacity=getComputedStyle(backdrop).opacity;

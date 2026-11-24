@@ -9,7 +9,7 @@
 .updates-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.updates-heading h2{margin:6px 0;font-size:24px;letter-spacing:2px}.updates-heading small{font-size:10px;letter-spacing:2px;color:#c99eb7}
 #updates-close{background:#ffffff0c;color:#f4d0e1;border:1px solid #ffffff26;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer}
 .updates-intro{font-size:12px;line-height:1.8;color:#c4b0c2;margin:20px 0 25px}.update-entry{padding:0 0 25px 18px;margin-left:5px;border-left:1px solid #d4a9c040;position:relative}.update-entry::before{content:'';position:absolute;left:-4px;top:7px;width:7px;height:7px;border-radius:50%;background:#e7abc6}.update-entry time,.update-entry .update-period{font-size:11px;color:#dfaec6;font-variant-numeric:tabular-nums}.update-entry h3{font-size:15px;margin:10px 0;color:#f5d8e7}.update-entry ul{padding-left:18px;margin:0;color:#cdbacb;font-size:13px;line-height:1.9}.update-entry li+li{margin-top:8px}
-@media(max-width:700px){.top-actions{gap:8px}.scene-auto-control{min-height:44px;padding:10px 12px}#updates-open{width:48px;height:72px;top:45%}#updates-content{padding:24px 20px}.settings{top:220px}}
+@media(max-width:700px){#updates-open{top:45%}#updates-content{padding:24px 20px}}
 
 #updates-open{transition:transform 320ms cubic-bezier(.22,1,.36,1),border-radius 320ms,background 160ms}
 #updates-open span{display:block;transition:transform 320ms cubic-bezier(.22,1,.36,1)}
@@ -30,3 +30,59 @@
 .profile-share p:empty{display:none}
 .profile-share textarea{display:block;box-sizing:border-box;width:min(100%,32rem);margin-top:.5rem;padding:.6rem;border:1px solid #efb3c7;border-radius:.5rem;background:#25151d;color:#fff;font:inherit;font-size:.875rem}
 .profile-share textarea[hidden]{display:none}
+@media (max-width:700px) {
+ .page > header {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:center;
+  gap:12px;
+ }
+ .header-right {display:contents}
+ .site-clock {justify-self:end;min-width:0}
+ .clock-label {display:block;margin:0 0 2px}
+ .uptime-line {flex-wrap:wrap;gap:3px;white-space:normal}
+ #site-uptime {white-space:nowrap}
+ .top-actions {
+  display:grid;
+  grid-column:1/-1;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  justify-self:end;
+  width:min(100%,30rem);
+  gap:8px;
+ }
+ .top-actions > * {
+  grid-column:span 2;
+  align-self:stretch;
+  min-width:0;
+  min-height:44px;
+  margin:0;
+  padding:7px 6px;
+  font-size:13px;
+  line-height:1.25;
+  text-align:center;
+  overflow-wrap:anywhere;
+ }
+ .top-actions > #clean,.top-actions > .scene-auto-control {grid-column:span 3}
+ .top-actions > .language-switch,.top-actions > .scene-auto-control {justify-content:center}
+ .top-actions .scene-auto-control {white-space:normal}
+ .top-actions .scene-auto-control input {flex:none}
+ .top-actions .language-switch > span {display:none}
+ .top-actions .language-switch select {width:100%;min-width:0;min-height:0;padding:0;text-align:center}
+ .destinations {display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .destination-pair {grid-column:1/-1}
+ .destinations .destination {min-width:0;min-height:58px}
+ .destinations .destination strong {overflow-wrap:anywhere}
+ .destinations .destination small {font-size:.6875rem}
+ .settings {
+  top:auto;
+  right:clamp(12px,4vw,24px);
+  bottom:max(12px,env(safe-area-inset-bottom));
+  max-height:calc(100dvh - max(12px,env(safe-area-inset-bottom)) - 12px);
+  overscroll-behavior:contain;
+ }
+ .settings .panel-heading button {flex:none;width:44px;height:44px}
+}
+@media (max-width:360px) {
+ .page > header .brand {gap:7px;font-size:.875rem}
+ .page > header .brand-mark {flex:none;width:34px;height:34px}
+}
